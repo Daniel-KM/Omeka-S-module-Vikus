@@ -8,6 +8,7 @@ return [
             'Vikus\CacheStorage' => Service\Stdlib\CacheStorageFactory::class,
             'Vikus\ImageUrl' => Service\Stdlib\ImageUrlFactory::class,
             'Vikus\DataBuilder' => Service\Stdlib\DataBuilderFactory::class,
+            'Vikus\ConfigBuilder' => Service\Stdlib\ConfigBuilderFactory::class,
         ],
         'invokables' => [
             'Vikus\SpriteBuilder' => Stdlib\SpriteBuilder::class,
