@@ -94,14 +94,17 @@ class DataBuilder
             ['_detail', '_big']
         );
 
+        // The escape character is disabled: with the default backslash, a value
+        // containing one before a quote is written verbatim and the parser of
+        // the viewer (d3, RFC 4180) shifts the columns of the row.
         $handle = fopen($dir . '/data.csv', 'w');
-        fputcsv($handle, $headers, ',', '"', '\\');
+        fputcsv($handle, $headers, ',', '"', '');
 
         // The viewer always loads the timeline file, so it is written even
         // when it has no row: a missing url makes it request "<base>/undefined"
         // and log a loading error in the console.
         $timeline = fopen($dir . '/timeline.csv', 'w');
-        fputcsv($timeline, ['year', 'title', 'description'], ',', '"', '\\');
+        fputcsv($timeline, ['year', 'title', 'description'], ',', '"', '');
         fclose($timeline);
 
         $query = ['site_id' => $site->id(), 'has_media' => 1] + (array) ($options['query'] ?? []);
@@ -138,7 +141,7 @@ class DataBuilder
                 }
                 $row[] = $urls['detail'];
                 $row[] = $urls['big'];
-                fputcsv($handle, $row, ',', '"', '\\');
+                fputcsv($handle, $row, ',', '"', '');
 
                 $sources[$item->id()] = $this->thumbnailSource($media);
                 if (count($sources) >= $maxItems) {
