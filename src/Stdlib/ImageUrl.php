@@ -32,9 +32,13 @@ class ImageUrl
                 ];
             }
         }
+        $large = (string) $media->thumbnailUrl('large');
+        // A media without original file, or whose original is not an image
+        // (a pdf, a video with a poster), has no usable url of big image.
+        $hasImage = $media->hasOriginal() && str_starts_with((string) $media->mediaType(), 'image/');
         return [
-            'detail' => (string) $media->thumbnailUrl('large'),
-            'big' => (string) $media->originalUrl(),
+            'detail' => $large,
+            'big' => $hasImage ? (string) $media->originalUrl() : $large,
         ];
     }
 }

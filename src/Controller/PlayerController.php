@@ -54,9 +54,21 @@ class PlayerController extends AbstractActionController
         $base = dirname($assetUrl('vendor/vikus-viewer/index.html', 'Vikus', false, false, true)) . '/';
         $replacement = '<base href="' . htmlspecialchars($base, ENT_QUOTES) . '" target="_blank">';
         // preg_replace_callback avoids interpreting "$" or "\" in $replacement.
-        $html = preg_replace_callback('~<base\b[^>]*>~', fn () => $replacement, $html, 1, $count);
+        $html = preg_replace_callback('~<base\b[^>]*>~i', fn () => $replacement, $html, 1, $count);
         if ($count !== 1) {
-            throw new RuntimeException('Unable to find the base tag of the viewer.');
+            // An upstream version of the page without a base tag is supported:
+            // the tag is added at the beginning of the head, so the relative
+            // css and js of the viewer still resolve.
+            $html = preg_replace_callback(
+                '~<head\b[^>]*>~i',
+                fn (array $matches): string => $matches[0] . $replacement,
+                $html,
+                1,
+                $count
+            );
+        }
+        if ($count !== 1) {
+            throw new RuntimeException('Unable to find the base or the head tag of the viewer.');
         }
 
         // The script of the module is injected in the page of the viewer,
