@@ -164,7 +164,7 @@ class DataBuilder
                 return $path;
             }
         }
-        return (string) ($media->thumbnailUrl('large') ?: $media->thumbnailUrl('medium'));
+        return (string) $media->thumbnailUrl('large');
     }
 
     protected function keywords(ItemRepresentation $item, array $terms): array

@@ -59,19 +59,18 @@ class PlayerController extends AbstractActionController
             throw new RuntimeException('Unable to find the base tag of the viewer.');
         }
 
-        // The styles of the module are injected in the page of the viewer: the
-        // css of the block is loaded by the page of the site, not by the
-        // iframe. strtr() is a no-op when "</head>" is missing.
-        $link = '<link rel="stylesheet" href="'
-            . htmlspecialchars($assetUrl('css/viewer.css', 'Vikus'), ENT_QUOTES) . '">';
-        $html = strtr($html, ['</head>' => $link . '</head>']);
-
-        // strtr() is a no-op when "</body>" is missing, so the page is returned
-        // as-is instead of breaking: the button is only a convenience for the
-        // admin, not a required part of the page.
+        // The script of the module is injected in the page of the viewer,
+        // which is the only document of the iframe, and after the scripts of
+        // the viewer, that it completes. strtr() is a no-op when "</body>" is
+        // missing, so the page is returned as-is instead of breaking: the
+        // script and the button are only improvements, not required parts of
+        // the page.
+        $script = '<script src="'
+            . htmlspecialchars($assetUrl('js/viewer.js', 'Vikus'), ENT_QUOTES) . '"></script>';
         if ($block->page()->userIsAllowed('update')) {
-            $html = strtr($html, ['</body>' => $this->regenerateForm($block) . '</body>']);
+            $script .= $this->regenerateForm($block);
         }
+        $html = strtr($html, ['</body>' => $script . '</body>']);
 
         $response = $this->getResponse();
         $response->getHeaders()->addHeaderLine('Content-Type', 'text/html; charset=utf-8');
