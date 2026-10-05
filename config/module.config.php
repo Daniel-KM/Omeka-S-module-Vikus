@@ -6,6 +6,7 @@ return [
     'service_manager' => [
         'factories' => [
             'Vikus\CacheStorage' => Service\Stdlib\CacheStorageFactory::class,
+            'Vikus\ImageUrl' => Service\Stdlib\ImageUrlFactory::class,
         ],
     ],
     'translator' => [
