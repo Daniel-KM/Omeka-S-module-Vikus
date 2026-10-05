@@ -72,6 +72,9 @@ class GenerateData extends AbstractJob
                 // their images stay as readable as the ones of the time one.
                 'years' => $stats['years'],
                 'groups' => $stats['groups'],
+                // Geographic bounds of the window of map.csv, that the base map
+                // of the layout follows.
+                'map_bounds' => $stats['map_bounds'],
                 'generated' => (new \DateTimeImmutable())->format(DATE_ATOM),
             ];
             if (@file_put_contents($dir . '/meta.json', json_encode($meta)) === false) {

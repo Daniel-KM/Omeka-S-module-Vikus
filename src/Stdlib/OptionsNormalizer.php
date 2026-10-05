@@ -24,6 +24,10 @@ class OptionsNormalizer
 
     const YEAR_PRECISIONS = ['year', 'decade', 'century'];
 
+    const MAP_TILES = 'https://tile.openstreetmap.org/{z}/{x}/{y}.png';
+
+    const MAP_ATTRIBUTION = '© OpenStreetMap contributors';
+
     /**
      * Read the normalized options of a viewer from the settings of a site.
      *
@@ -73,6 +77,18 @@ class OptionsNormalizer
         $data['map_outliers'] = in_array($outliers, DataBuilder::MAP_OUTLIERS, true)
             ? $outliers
             : 'clamp';
+        $tiles = trim((string) ($data['map_tiles'] ?? ''));
+        $data['map_tiles'] = self::isTileUrl($tiles)
+            ? $tiles
+            : (string) ($defaults['map_tiles'] ?? self::MAP_TILES);
+        // Leaflet writes the attribution as html in its control, so the tags
+        // are removed here and the script escapes the text a second time: the
+        // option is a plain text, not a markup.
+        $data['map_attribution'] = trim(strip_tags((string) ($data['map_attribution'] ?? '')));
+        $opacity = $data['map_opacity'] ?? null;
+        $data['map_opacity'] = is_numeric($opacity)
+            ? max(0.0, min(1.0, (float) $opacity))
+            : (float) ($defaults['map_opacity'] ?? 0.6);
         $data['columns'] = max(1, min(50, (int) ($data['columns'] ?? 6)));
         $data['height'] = preg_match('~^\d+(\.\d+)?(px|vh|em|rem|%)$~', trim((string) ($data['height'] ?? '')))
             ? trim((string) $data['height'])
@@ -99,6 +115,21 @@ class OptionsNormalizer
         }
 
         return $data;
+    }
+
+    /**
+     * Check an url template of a tile server, as Leaflet expects it.
+     *
+     * Only http and https are allowed, and the three placeholders must be
+     * present: a template without them would make the map request the same tile
+     * everywhere.
+     */
+    protected static function isTileUrl(string $url): bool
+    {
+        return (bool) preg_match('~^https?://[^\s<>"\']+$~', $url)
+            && str_contains($url, '{z}')
+            && str_contains($url, '{x}')
+            && str_contains($url, '{y}');
     }
 
     /**

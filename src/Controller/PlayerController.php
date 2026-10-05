@@ -33,6 +33,11 @@ class PlayerController extends AbstractActionController
 
     protected string $viewerPath;
 
+    /**
+     * Config of the viewer of a target, by cache key.
+     */
+    protected array $configs = [];
+
     public function __construct(
         EntityManager $entityManager,
         CacheStorage $cacheStorage,
@@ -114,6 +119,7 @@ class PlayerController extends AbstractActionController
         $script = '<script src="'
             . htmlspecialchars($assetUrl('js/viewer.js', 'Vikus'), ENT_QUOTES)
             . '" data-vikus-hint="' . htmlspecialchars($hint, ENT_QUOTES) . '"></script>';
+        $script .= $this->mapScript($target, $assetUrl);
         if ($target['allowed']) {
             $script .= $this->regenerateForm();
         }
@@ -144,14 +150,51 @@ class PlayerController extends AbstractActionController
 
     public function configAction()
     {
-        $target = $this->getTarget();
-        $meta = $this->cacheStorage->readMeta($target['key']);
-        return new JsonModel($this->configBuilder->build(
-            $target['options'],
-            $target['title'],
-            $this->cacheStorage->url($target['key']),
-            $meta
-        ));
+        return new JsonModel($this->config($this->getTarget()));
+    }
+
+    /**
+     * Build the config of the viewer of a target, once by request.
+     *
+     * The page of the viewer needs it for the base map and the action "config"
+     * serves it, so it is memoised: building it reads the meta of the cache and
+     * the labels of the properties.
+     */
+    protected function config(array $target): array
+    {
+        if (!isset($this->configs[$target['key']])) {
+            $this->configs[$target['key']] = $this->configBuilder->build(
+                $target['options'],
+                $target['title'],
+                $this->cacheStorage->url($target['key']),
+                $this->cacheStorage->readMeta($target['key'])
+            );
+        }
+        return $this->configs[$target['key']];
+    }
+
+    /**
+     * Build the assets of the base map, when the viewer has a map layout.
+     *
+     * Leaflet and the script of the module are only added when the config
+     * declares a map, that is when the cache holds the bounds of its window: a
+     * viewer without map layout loads nothing more. The settings travel in an
+     * inline object rather than a fetch: the script has no url of its own and
+     * the values are already known here.
+     */
+    protected function mapScript(array $target, callable $assetUrl): string
+    {
+        $map = $this->config($target)['vikus']['map'] ?? null;
+        if (!$map) {
+            return '';
+        }
+        $asset = fn (string $path): string => htmlspecialchars($assetUrl($path, 'Vikus'), ENT_QUOTES);
+        return '<link rel="stylesheet" href="' . $asset('vendor/leaflet/dist/leaflet.css') . '">'
+            . '<script>window.vikusMap = '
+            . json_encode($map, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT)
+            . ';</script>'
+            . '<script src="' . $asset('vendor/leaflet/dist/leaflet.js') . '"></script>'
+            . '<script src="' . $asset('js/map.js') . '"></script>';
     }
 
     /**

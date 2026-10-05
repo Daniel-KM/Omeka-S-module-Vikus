@@ -59,13 +59,15 @@ class ConfigBuilder
 
         // The map uses the csv mechanism of the similarity layouts of the
         // viewer, that rescales the columns "x" and "y" on their extent.
+        $map = [];
         if (!empty($options['layout_map']) && !empty($meta['map'])) {
-            $mapTitle = $this->translator->translate('Map'); // @translate
+            $mapTitle = $this->uniqueTitle($this->translator->translate('Map'), $titles, 'map.csv'); // @translate
             $layouts[] = [
-                'title' => $this->uniqueTitle($mapTitle, $titles, 'map.csv'),
+                'title' => $mapTitle,
                 'url' => $cacheUrl . '/map.csv',
                 'scale' => 0.5,
             ];
+            $map = $this->map($options, $mapTitle, $style, (array) ($meta['map_bounds'] ?? []));
         }
 
         $structure = [];
@@ -115,8 +117,39 @@ class ConfigBuilder
         if ($filter) {
             $config['filter'] = $filter;
         }
+        if ($map) {
+            // The viewer ignores the keys it does not know, so the settings of
+            // the base map travel with its own config.
+            $config['vikus'] = ['map' => $map];
+        }
 
         return $config;
+    }
+
+    /**
+     * Build the settings of the base map displayed behind the map layout.
+     *
+     * The bounds are the geographic ones of the window of map.csv, that the
+     * script of the module inverts to follow the zoom of the canvas. Without
+     * them, there is nothing to align the map on, so no base map is declared.
+     *
+     * @return array Empty when the cache has no bounds (generated before).
+     */
+    protected function map(array $options, string $title, array $style, array $bounds): array
+    {
+        if (count($bounds) !== 4) {
+            return [];
+        }
+        return [
+            'title' => $title,
+            'bounds' => array_map('floatval', $bounds),
+            'tiles' => (string) ($options['map_tiles'] ?? OptionsNormalizer::MAP_TILES),
+            'attribution' => (string) ($options['map_attribution'] ?? ''),
+            'opacity' => (float) ($options['map_opacity'] ?? 0.6),
+            // The canvas of the viewer becomes transparent to let the map
+            // through, so the page carries its background itself.
+            'background' => (string) ($style['canvasBackground'] ?? '#ffffff'),
+        ];
     }
 
     /**

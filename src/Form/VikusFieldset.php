@@ -6,6 +6,7 @@ use Common\Form\Element as CommonElement;
 use Laminas\Form\Element;
 use Laminas\Form\Fieldset;
 use Omeka\Form\Element as OmekaElement;
+use Vikus\Stdlib\OptionsNormalizer;
 
 class VikusFieldset extends Fieldset
 {
@@ -271,6 +272,44 @@ class VikusFieldset extends Fieldset
                 ],
                 'attributes' => [
                     'id' => $id('map_outliers'),
+                ],
+            ],
+            'map_tiles' => [
+                'name' => $name('map_tiles'),
+                'type' => Element\Text::class,
+                'options' => [
+                    'label' => 'Tiles of the base map', // @translate
+                    'info' => 'Url template of a tile server, with the placeholders {z}, {x} and {y}. The tiles of OpenStreetMap are not meant for a public site: use a self-hosted or a licensed tile server.', // @translate
+                ],
+                'attributes' => [
+                    'id' => $id('map_tiles'),
+                    'placeholder' => OptionsNormalizer::MAP_TILES,
+                ],
+            ],
+            'map_attribution' => [
+                'name' => $name('map_attribution'),
+                'type' => Element\Text::class,
+                'options' => [
+                    'label' => 'Attribution of the base map', // @translate
+                    'info' => 'Displayed in the corner of the map, as the licence of the tiles requires it.', // @translate
+                ],
+                'attributes' => [
+                    'id' => $id('map_attribution'),
+                    'placeholder' => OptionsNormalizer::MAP_ATTRIBUTION,
+                ],
+            ],
+            'map_opacity' => [
+                'name' => $name('map_opacity'),
+                'type' => Element\Number::class,
+                'options' => [
+                    'label' => 'Opacity of the base map', // @translate
+                    'info' => 'From 0 (invisible) to 1 (full): a faded map keeps the images readable.', // @translate
+                ],
+                'attributes' => [
+                    'id' => $id('map_opacity'),
+                    'min' => 0,
+                    'max' => 1,
+                    'step' => 0.1,
                 ],
             ],
             'image_source' => [

@@ -46,6 +46,20 @@
     "extra": {
         "installer-name": "Vikus",
         "external-assets": {
+            "asset/vendor/leaflet/": {
+                "url": "https://registry.npmjs.org/leaflet/-/leaflet-1.9.4.tgz",
+                "exclude": [
+                    "CHANGELOG.md",
+                    "README.md",
+                    "dist/leaflet-src.esm.js",
+                    "dist/leaflet-src.js",
+                    "package.json",
+                    "dist/leaflet-src.esm.js.map",
+                    "dist/leaflet-src.js.map",
+                    "dist/leaflet.js.map",
+                    "src"
+                ]
+            },
             "asset/vendor/vikus-viewer/": {
                 "url": "https://github.com/cpietsch/vikus-viewer/archive/ccb4e7e3d921521b01b2760b51bf4d1b090b844b.tar.gz",
                 "exclude": [

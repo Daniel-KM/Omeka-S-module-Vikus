@@ -51,3 +51,33 @@
     font-size: 11px !important;
     white-space: nowrap;
 }
+
+/*
+ * The base map displayed behind the map layout.
+ *
+ * The map is under the canvas of the viewer, that the script makes
+ * transparent, and it takes no pointer: every interaction belongs to the
+ * canvas. The background of the container of Leaflet is removed, so the
+ * canvas background of the config stays visible around the tiles; the rule
+ * is more specific than the one of leaflet.css, that is loaded after this
+ * file.
+ */
+
+.vikus-map {
+    display: none;
+    position: fixed;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    left: 0;
+    z-index: -1;
+    pointer-events: none;
+}
+
+.vikus-map.leaflet-container {
+    background: transparent;
+}
+
+.vikus-map .leaflet-control-container {
+    pointer-events: auto;
+}

@@ -84,6 +84,14 @@ class Module extends AbstractModule
             $errors[] = (string) $message->setTranslator($translator);
         }
 
+        if (!file_exists(__DIR__ . '/asset/vendor/leaflet/dist/leaflet.js')) {
+            $message = new PsrMessage(
+                'The library "{library}" should be installed. See module’s installation documentation.', // @translate
+                ['library' => 'Leaflet']
+            );
+            $errors[] = (string) $message->setTranslator($translator);
+        }
+
         if (!extension_loaded('imagick') && !extension_loaded('gd')) {
             $message = new PsrMessage(
                 'The php extension "imagick" or "gd" is required to build the sprites.' // @translate

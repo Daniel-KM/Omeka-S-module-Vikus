@@ -25,6 +25,24 @@ class DataBuilder
     const MAP_OUTLIERS = ['clamp', 'hide', 'none'];
 
     /**
+     * Highest latitude of the Web Mercator projection, in degrees.
+     */
+    const MAP_LATITUDE_MAX = 85.05112878;
+
+    /**
+     * Smallest half side of the window of the map, in projected units.
+     *
+     * A unit is a radian of longitude, so this is about six kilometres: it
+     * keeps a window around a collection whose points are all the same.
+     */
+    const MAP_HALF_MIN = 0.001;
+
+    /**
+     * Ids of the two rows anchoring the window of the map, never an item.
+     */
+    const MAP_ANCHORS = [0, -1];
+
+    /**
      * Options that require to rebuild the cache when they are updated.
      */
     const DATA_OPTIONS = [
@@ -60,7 +78,7 @@ class DataBuilder
     /**
      * Counts of the distinct keys of the layouts of the last build.
      */
-    protected array $stats = ['years' => 0, 'groups' => []];
+    protected array $stats = ['years' => 0, 'groups' => [], 'map_bounds' => []];
 
     /**
      * @var callable|null
@@ -182,6 +200,62 @@ class DataBuilder
     }
 
     /**
+     * Project a latitude on the ordinate of the Web Mercator projection.
+     *
+     * The unit of the result is the radian of longitude, so a window as wide as
+     * it is tall in these units is a square on a Web Mercator map, which is
+     * what a base map behind the layout requires. The latitude is clamped to
+     * the limit of the projection, where the ordinate diverges.
+     */
+    public static function mercator(float $latitude): float
+    {
+        $latitude = min(self::MAP_LATITUDE_MAX, max(-self::MAP_LATITUDE_MAX, $latitude));
+        return log(tan(M_PI / 4 + deg2rad($latitude) / 2));
+    }
+
+    /**
+     * Get the latitude of an ordinate of the Web Mercator projection.
+     */
+    public static function latitude(float $mercator): float
+    {
+        return rad2deg(2 * atan(exp($mercator)) - M_PI / 2);
+    }
+
+    /**
+     * Get the square window of the map containing every projected point.
+     *
+     * The viewer rescales the columns "x" and "y" of a csv layout on their own
+     * extent, so it stretches the collection on a square canvas and the two
+     * axes get different scales: a base map cannot follow. The window is
+     * therefore squared here, in projected units, and written as two anchor
+     * rows that set the extent of the file. The collection is then inscribed in
+     * a square, undistorted, and the whole window is clamped to the world.
+     *
+     * @param array $points Pairs [longitude, ordinate] by item id.
+     * @return array [longitude min, ordinate min, longitude max, ordinate max]
+     */
+    public static function mapWindow(array $points): array
+    {
+        $xs = array_column($points, 0);
+        $ys = array_column($points, 1);
+        $half = max(
+            deg2rad(max($xs) - min($xs)) / 2,
+            (max($ys) - min($ys)) / 2,
+            self::MAP_HALF_MIN
+        );
+        $half = min($half, M_PI);
+        $halfDegrees = rad2deg($half);
+        $centerX = min(180 - $halfDegrees, max(-180 + $halfDegrees, (min($xs) + max($xs)) / 2));
+        $centerY = min(M_PI - $half, max(-M_PI + $half, (min($ys) + max($ys)) / 2));
+        return [
+            $centerX - $halfDegrees,
+            $centerY - $half,
+            $centerX + $halfDegrees,
+            $centerY + $half,
+        ];
+    }
+
+    /**
      * Get the second and the ninety-eighth percentiles of a list of values.
      */
     protected static function percentiles(array $values): array
@@ -257,7 +331,7 @@ class DataBuilder
         // items without value are grouped under a label.
         $unknown = $this->translator->translate('Unknown'); // @translate
 
-        $this->stats = ['years' => 0, 'groups' => []];
+        $this->stats = ['years' => 0, 'groups' => [], 'map_bounds' => []];
         $years = [];
         $groups = array_fill_keys($termsGroup, []);
 
@@ -355,6 +429,7 @@ class DataBuilder
         $this->stats = [
             'years' => count($years),
             'groups' => array_map('count', $groups),
+            'map_bounds' => [],
         ];
 
         $this->buildMap($options, array_keys($sources), $dir, $shouldStop);
@@ -365,14 +440,17 @@ class DataBuilder
     /**
      * Write map.csv, whose rows place the items with a point on a map.
      *
-     * The viewer rescales the columns "x" and "y" of a csv layout on the
-     * extent of the data, so the raw degrees of an equirectangular projection
-     * are written as is. It negates "y" to place a row and a negative y is
-     * upward, so the latitude gives the north up. The items without point are
-     * simply absent: the viewer hides them in that layout.
+     * The column "x" is the longitude in degrees and the column "y" the Web
+     * Mercator ordinate of the latitude, so that a base map can be displayed
+     * behind the layout. The viewer negates "y" to place a row and a negative y
+     * is upward, so the ordinate gives the north up. The viewer rescales both
+     * columns on the extent of the file, so two anchor rows write the square
+     * window of mapWindow() and keep the map undistorted. The items without
+     * point are simply absent: the viewer hides them in that layout.
      *
      * The file is skipped when no item has a point, so that the layout is not
-     * appended to a config pointing to a missing file.
+     * appended to a config pointing to a missing file. The geographic bounds of
+     * the window are recorded in the stats, for the config of the base map.
      *
      * @param int[] $itemIds Ids of the items written in data.csv, in order.
      */
@@ -406,22 +484,40 @@ class DataBuilder
                     continue;
                 }
                 $coordinates = $feature->geographyCoordinates();
-                $points[$itemId] = [$coordinates[0], $coordinates[1]];
+                $points[$itemId] = [$coordinates[0], self::mercator((float) $coordinates[1])];
             }
             $this->entityManager->clear();
         }
         if (!$points) {
             return;
         }
+        // The isolated points are handled on the projected coordinates, so
+        // the percentiles describe the map that the visitor sees.
         $outliers = (string) ($options['map_outliers'] ?? 'clamp');
         if ($outliers === 'clamp') {
             $points = self::clampOutliers($points);
         } elseif ($outliers === 'hide') {
             $points = self::hideOutliers($points);
         }
+        if (!$points) {
+            return;
+        }
+
+        [$minX, $minY, $maxX, $maxY] = self::mapWindow($points);
+        $this->stats['map_bounds'] = [
+            $minX,
+            self::latitude($minY),
+            $maxX,
+            self::latitude($maxY),
+        ];
 
         $handle = fopen($dir . '/map.csv', 'w');
         fputcsv($handle, ['id', 'x', 'y'], ',', '"', '');
+        // The two anchors set the extent of the file, hence the window that
+        // the viewer maps on the canvas. Their ids are never those of an item,
+        // so they place no image.
+        fputcsv($handle, [self::MAP_ANCHORS[0], $minX, $minY], ',', '"', '');
+        fputcsv($handle, [self::MAP_ANCHORS[1], $maxX, $maxY], ',', '"', '');
         foreach ($itemIds as $itemId) {
             if (isset($points[$itemId])) {
                 fputcsv($handle, [$itemId, $points[$itemId][0], $points[$itemId][1]], ',', '"', '');
