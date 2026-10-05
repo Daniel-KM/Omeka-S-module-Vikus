@@ -150,6 +150,11 @@
  * lost for every later layout and leaves a hole in its column. Such an item
  * is hidden in the time layout, with a finite position, and shown again where
  * a layout gives it a place.
+ *
+ * The layout of a csv (the map) deactivates the items absent from the csv and
+ * never reactivates them, so half of the collection vanished from the layouts
+ * visited after the map: the items it deactivated are noted and activated
+ * again before the projection of any other layout.
  */
 (function () {
     'use strict';
@@ -169,8 +174,32 @@
 
         var project = canvas.project;
         canvas.project = function () {
+            var data = window.data || [];
+            var mode = canvas.getMode ? canvas.getMode() : null;
+            var csvLayout = !!(mode && mode.url);
+            var activeBefore = null;
+            if (csvLayout) {
+                activeBefore = data.map(function (d) {
+                    return d.active;
+                });
+            } else {
+                data.forEach(function (d) {
+                    if (d.vikusNoCsv) {
+                        d.vikusNoCsv = false;
+                        d.active = true;
+                        d.alpha = 1;
+                    }
+                });
+            }
             var result = project.apply(canvas, arguments);
-            (window.data || []).forEach(function (d) {
+            if (activeBefore) {
+                data.forEach(function (d, i) {
+                    if (activeBefore[i] && !d.active) {
+                        d.vikusNoCsv = true;
+                    }
+                });
+            }
+            data.forEach(function (d) {
                 if (!d.sprite) {
                     return;
                 }
