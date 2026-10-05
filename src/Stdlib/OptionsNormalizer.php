@@ -17,6 +17,8 @@ class OptionsNormalizer
 {
     const IMAGE_SOURCES = ['auto', 'omeka', 'iiif'];
 
+    const FILTER_TYPES = ['tags', 'hierarchical', 'crossfilter'];
+
     /**
      * Read the normalized options of a viewer from the settings of a site.
      *
@@ -59,6 +61,9 @@ class OptionsNormalizer
         $data['image_source'] = in_array($data['image_source'] ?? null, self::IMAGE_SOURCES, true)
             ? $data['image_source']
             : 'auto';
+        $data['filter_type'] = in_array($data['filter_type'] ?? null, self::FILTER_TYPES, true)
+            ? $data['filter_type']
+            : 'tags';
 
         foreach (array_keys(VikusFieldset::STYLES) as $key) {
             $key = 'style_' . $key;

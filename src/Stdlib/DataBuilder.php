@@ -22,6 +22,7 @@ class DataBuilder
         'property_keywords',
         'properties_detail',
         'timeline_events',
+        'filter_type',
         'image_source',
         'link_to_item',
         'info',
@@ -71,6 +72,22 @@ class DataBuilder
     }
 
     /**
+     * Name of the column of a dimension of the crossfilter.
+     */
+    public static function columnFilter(string $term): string
+    {
+        return '_f' . self::column($term);
+    }
+
+    /**
+     * Name of the column used as the key of a group layout.
+     */
+    public static function columnGroup(string $term): string
+    {
+        return '_g' . self::column($term);
+    }
+
+    /**
      * Write data.csv in a directory and list the thumbnails to pack.
      *
      * @return array Sources (path or url) of medium thumbnails by item id.
@@ -87,10 +104,16 @@ class DataBuilder
         $termsDetail = (array) ($options['properties_detail'] ?? []);
         $imageSource = (string) ($options['image_source'] ?? 'auto');
         $linkToItem = !empty($options['link_to_item']);
+        // A dimension of the crossfilter is a single column of data.csv, so
+        // one is written by property of the keywords, but only in that mode.
+        $termsFilter = ($options['filter_type'] ?? 'tags') === 'crossfilter'
+            ? $termsKeywords
+            : [];
 
         $headers = array_merge(
             ['id', 'keywords', 'year'],
             array_map([self::class, 'column'], $termsDetail),
+            array_map([self::class, 'columnFilter'], $termsFilter),
             $linkToItem ? ['_url'] : [],
             ['_detail', '_big']
         );
@@ -131,6 +154,9 @@ class DataBuilder
                 ];
                 foreach ($termsDetail as $term) {
                     $row[] = implode(' ; ', array_map([$this, 'label'], $item->value($term, ['all' => true])));
+                }
+                foreach ($termsFilter as $term) {
+                    $row[] = $this->firstLabel($item, $term);
                 }
                 if ($linkToItem) {
                     $row[] = $item->siteUrl($site->slug(), true);
@@ -217,6 +243,18 @@ class DataBuilder
             }
         }
         return array_values($keywords);
+    }
+
+    /**
+     * Get the label of the first value of a property, if any.
+     *
+     * The crossfilter and the group layouts of the viewer take a single value
+     * by item: an array is only supported for the column "keywords".
+     */
+    protected function firstLabel(ItemRepresentation $item, string $term): string
+    {
+        $value = $item->value($term);
+        return $value ? $this->label($value) : '';
     }
 
     protected function label(ValueRepresentation $value): string

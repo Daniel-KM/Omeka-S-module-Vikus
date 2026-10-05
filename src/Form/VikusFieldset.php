@@ -138,6 +138,22 @@ class VikusFieldset extends Fieldset
                     'data-placeholder' => 'Select properties…', // @translate
                 ],
             ],
+            'filter_type' => [
+                'name' => $name('filter_type'),
+                'type' => Element\Select::class,
+                'options' => [
+                    'label' => 'Mode of the filter', // @translate
+                    'info' => 'With the hierarchical mode, the keywords are split on ":" to build levels. With the crossfilter, each property of the keywords is a facet.', // @translate
+                    'value_options' => [
+                        'tags' => 'Keywords (tag cloud)', // @translate
+                        'hierarchical' => 'Hierarchical keywords', // @translate
+                        'crossfilter' => 'Crossfilter (facets by property)', // @translate
+                    ],
+                ],
+                'attributes' => [
+                    'id' => $id('filter_type'),
+                ],
+            ],
             'properties_detail' => [
                 'name' => $name('properties_detail'),
                 'type' => OmekaElement\PropertySelect::class,

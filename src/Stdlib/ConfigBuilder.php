@@ -32,9 +32,8 @@ class ConfigBuilder
 
         $structure = [];
         foreach ((array) ($options['properties_detail'] ?? []) as $term) {
-            $label = $this->easyMeta->propertyLabel($term);
             $structure[] = [
-                'name' => $label ? $this->translator->translate($label) : $term,
+                'name' => $this->label($term),
                 'source' => DataBuilder::column($term),
                 'display' => 'column',
                 'type' => 'text',
@@ -49,7 +48,7 @@ class ConfigBuilder
             ];
         }
 
-        return [
+        $config = [
             'project' => [
                 'name' => trim((string) ($options['title'] ?? '')) ?: $title,
                 'quality' => 1,
@@ -75,5 +74,47 @@ class ConfigBuilder
                 'structure' => $structure,
             ],
         ];
+
+        $filter = $this->filter($options);
+        if ($filter) {
+            $config['filter'] = $filter;
+        }
+
+        return $config;
+    }
+
+    /**
+     * Build the filter of the viewer, empty for the default keyword tags.
+     *
+     * In hierarchical mode, the viewer splits each keyword on ":" itself. In
+     * crossfilter mode, each property of the keywords is a dimension, read in
+     * its own column of data.csv.
+     */
+    protected function filter(array $options): array
+    {
+        $type = (string) ($options['filter_type'] ?? 'tags');
+        if ($type === 'hierarchical') {
+            return ['type' => 'hierarchical'];
+        }
+        if ($type !== 'crossfilter') {
+            return [];
+        }
+        $dimensions = [];
+        foreach ((array) ($options['property_keywords'] ?? []) as $term) {
+            $dimensions[] = [
+                'source' => DataBuilder::columnFilter($term),
+                'label' => $this->label($term),
+            ];
+        }
+        return ['type' => 'crossfilter', 'dimensions' => $dimensions];
+    }
+
+    /**
+     * Get the translated label of a property, or the term when unknown.
+     */
+    protected function label(string $term): string
+    {
+        $label = $this->easyMeta->propertyLabel($term);
+        return $label ? $this->translator->translate($label) : $term;
     }
 }
