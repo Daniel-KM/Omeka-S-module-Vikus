@@ -58,10 +58,16 @@ class CacheStorage
         $path = $this->path($blockId);
         $old = $path . '.old';
         $this->remove($old);
-        if (is_dir($path)) {
-            rename($path, $old);
+        $hasPrevious = is_dir($path);
+        if ($hasPrevious && !@rename($path, $old)) {
+            throw new RuntimeException(sprintf('Unable to move directory "%s" to "%s".', $path, $old));
         }
-        rename($path . '.tmp', $path);
+        if (!@rename($path . '.tmp', $path)) {
+            if ($hasPrevious) {
+                rename($old, $path);
+            }
+            throw new RuntimeException(sprintf('Unable to move directory "%s.tmp" to "%s".', $path, $path));
+        }
         $this->remove($old);
     }
 
