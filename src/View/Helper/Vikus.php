@@ -32,6 +32,7 @@ class Vikus extends AbstractHelper
             'status' => $status,
             'height' => $height,
             'url' => null,
+            'fullUrl' => null,
         ];
 
         if ($status === 'ready') {
@@ -40,6 +41,9 @@ class Vikus extends AbstractHelper
             // module Clean Url.
             $configUrl = $view->serverUrl($view->url('site/vikus', $params + ['action' => 'config']));
             $vars['url'] = $view->url('site/vikus', $params, ['query' => ['config' => $configUrl]]);
+            // The link opens the viewer alone, without the page around it: the
+            // same url as the iframe.
+            $vars['fullUrl'] = $vars['url'];
             $view->headLink()->appendStylesheet($view->assetUrl('css/vikus.css', 'Vikus'));
         }
 
