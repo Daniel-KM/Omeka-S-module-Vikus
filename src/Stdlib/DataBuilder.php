@@ -20,6 +20,7 @@ class DataBuilder
     const DATA_OPTIONS = [
         'query',
         'property_year',
+        'property_year_annotation',
         'property_keywords',
         'properties_detail',
         'timeline_events',
@@ -117,7 +118,6 @@ class DataBuilder
         int $maxItems,
         ?callable $shouldStop = null
     ): array {
-        $termYear = (string) ($options['property_year'] ?? '');
         $termsKeywords = (array) ($options['property_keywords'] ?? []);
         $termsDetail = (array) ($options['properties_detail'] ?? []);
         $imageSource = (string) ($options['image_source'] ?? 'auto');
@@ -180,7 +180,7 @@ class DataBuilder
                 $row = [
                     $item->id(),
                     implode(',', $this->keywords($item, $termsKeywords)),
-                    $termYear ? self::extractYear((string) $item->value($termYear)) : '',
+                    $this->year($item, $options),
                 ];
                 foreach ($termsDetail as $term) {
                     $row[] = implode(' ; ', array_map([$this, 'label'], $item->value($term, ['all' => true])));
@@ -359,6 +359,39 @@ class DataBuilder
             }
         }
         return (string) $media->thumbnailUrl('large');
+    }
+
+    /**
+     * Get the year of an item, read in a value or in a value annotation.
+     *
+     * When a property of the annotation is set, the year is the first one
+     * found in the annotations of the values of the property of the year:
+     * many collections carry the dating of a value (an author, an event) in
+     * its annotation and not in the item itself.
+     */
+    protected function year(ItemRepresentation $item, array $options): string
+    {
+        $term = (string) ($options['property_year'] ?? '');
+        if ($term === '') {
+            return '';
+        }
+        $termAnnotation = (string) ($options['property_year_annotation'] ?? '');
+        if ($termAnnotation === '') {
+            return self::extractYear((string) $item->value($term));
+        }
+        foreach ($item->value($term, ['all' => true]) as $value) {
+            $annotation = $value->valueAnnotation();
+            if (!$annotation) {
+                continue;
+            }
+            foreach ($annotation->value($termAnnotation, ['all' => true]) as $annotationValue) {
+                $year = self::extractYear((string) $annotationValue);
+                if ($year !== '') {
+                    return $year;
+                }
+            }
+        }
+        return '';
     }
 
     protected function keywords(ItemRepresentation $item, array $terms): array

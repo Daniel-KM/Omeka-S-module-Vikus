@@ -124,6 +124,21 @@ class VikusFieldset extends Fieldset
                     'data-placeholder' => 'Select a property…', // @translate
                 ],
             ],
+            'property_year_annotation' => [
+                'name' => $name('property_year_annotation'),
+                'type' => OmekaElement\PropertySelect::class,
+                'options' => [
+                    'label' => 'Property of the annotation carrying the year', // @translate
+                    'info' => 'When set, the year is read in this property of the value annotations of the values of "Property for the year". When empty, the value itself is used.', // @translate
+                    'empty_option' => '',
+                    'term_as_value' => true,
+                ],
+                'attributes' => [
+                    'id' => $id('property_year_annotation'),
+                    'class' => 'chosen-select',
+                    'data-placeholder' => 'Select a property…', // @translate
+                ],
+            ],
             'property_keywords' => [
                 'name' => $name('property_keywords'),
                 'type' => OmekaElement\PropertySelect::class,

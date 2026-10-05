@@ -50,6 +50,10 @@ class OptionsNormalizer
         foreach (['property_keywords', 'properties_detail', 'properties_group'] as $key) {
             $data[$key] = array_values(array_filter((array) ($data[$key] ?? [])));
         }
+        foreach (['property_year', 'property_year_annotation'] as $key) {
+            $value = $data[$key] ?? null;
+            $data[$key] = is_string($value) ? trim($value) : '';
+        }
         if (array_key_exists('timeline_events', $data)) {
             $data['timeline_events'] = self::timelineEvents($data['timeline_events']);
         }
