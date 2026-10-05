@@ -20,8 +20,10 @@ class ConfigBuilder
     /**
      * Build the config of the viewer from the options of a block.
      *
-     * The titles of the group layouts are read live from the options: they
-     * are a presentation only and do not require to rebuild the cache.
+     * The titles of the layouts are read live from the options: they are a
+     * presentation only and do not require to rebuild the cache. Besides the
+     * terms of the group layouts, the option "layout_titles" takes the two
+     * reserved keys "time" and "map".
      *
      * @param array $meta The meta data of the cache: "map" (whether it
      * contains a map.csv, only built when the module Mapping is active and an
@@ -44,10 +46,13 @@ class ConfigBuilder
         $groupCounts = (array) ($meta['groups'] ?? []);
 
         // The first layout is the default one and the viewer hides the
-        // navigation when there is only one.
-        $layouts = [['title' => 'Time']];
-        $titles = ['Time' => true];
+        // navigation when there is only one. A layout without type and without
+        // url is the time layout of the viewer, whatever its title, so the
+        // title is translated and the option may replace it.
         $layoutTitles = (array) ($options['layout_titles'] ?? []);
+        $timeTitle = (string) ($layoutTitles['time'] ?? $this->translator->translate('Time')); // @translate
+        $layouts = [['title' => $timeTitle]];
+        $titles = [$timeTitle => true];
         foreach ((array) ($options['properties_group'] ?? []) as $term) {
             $layouts[] = [
                 'title' => $this->uniqueTitle($layoutTitles[$term] ?? $this->label($term), $titles, $term),
@@ -61,7 +66,8 @@ class ConfigBuilder
         // viewer, that rescales the columns "x" and "y" on their extent.
         $map = [];
         if (!empty($options['layout_map']) && !empty($meta['map'])) {
-            $mapTitle = $this->uniqueTitle($this->translator->translate('Map'), $titles, 'map.csv'); // @translate
+            $mapTitle = (string) ($layoutTitles['map'] ?? $this->translator->translate('Map')); // @translate
+            $mapTitle = $this->uniqueTitle($mapTitle, $titles, 'map.csv');
             $layouts[] = [
                 'title' => $mapTitle,
                 'url' => $cacheUrl . '/map.csv',

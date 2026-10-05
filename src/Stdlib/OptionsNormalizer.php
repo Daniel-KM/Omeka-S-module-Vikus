@@ -134,11 +134,13 @@ class OptionsNormalizer
     }
 
     /**
-     * Normalize the titles of the group layouts, set as a string by the form.
+     * Normalize the titles of the layouts, set as a string by the form.
      *
      * Each line is a pair "term = Title", so the value is an array of titles
-     * by term. A line without title is skipped: it would hide the label of
-     * the property behind an empty navigation button.
+     * by term. The keys are kept as they are typed: besides the terms of the
+     * group layouts, ConfigBuilder reads the two reserved keys "time" and
+     * "map". A line without title is skipped: it would hide the label of the
+     * property behind an empty navigation button.
      */
     protected static function layoutTitles($titles): array
     {
