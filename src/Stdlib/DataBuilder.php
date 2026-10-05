@@ -198,7 +198,7 @@ class DataBuilder
 
         fclose($handle);
 
-        $this->buildMap($options, array_keys($sources), $dir);
+        $this->buildMap($options, array_keys($sources), $dir, $shouldStop);
 
         return $sources;
     }
@@ -217,8 +217,12 @@ class DataBuilder
      *
      * @param int[] $itemIds Ids of the items written in data.csv, in order.
      */
-    protected function buildMap(array $options, array $itemIds, string $dir): void
-    {
+    protected function buildMap(
+        array $options,
+        array $itemIds,
+        string $dir,
+        ?callable $shouldStop = null
+    ): void {
         if (empty($options['layout_map']) || !$this->hasMapping || !$itemIds) {
             return;
         }
@@ -227,7 +231,16 @@ class DataBuilder
         // referenced here: its api resource and its json keys are used only.
         $points = [];
         foreach (array_chunk($itemIds, self::BATCH) as $ids) {
-            $features = $this->api->search('mapping_features', ['item_id' => $ids])->getContent();
+            if ($shouldStop && $shouldStop()) {
+                return;
+            }
+            // The features of an item are sorted, so the point kept for it is
+            // the same from one generation to the next.
+            $features = $this->api->search('mapping_features', [
+                'item_id' => $ids,
+                'sort_by' => 'id',
+                'sort_order' => 'asc',
+            ])->getContent();
             foreach ($features as $feature) {
                 $itemId = $feature->item()->id();
                 if (isset($points[$itemId]) || $feature->geographyType() !== 'Point') {
@@ -329,11 +342,17 @@ class DataBuilder
         return $value ? $this->label($value) : '';
     }
 
+    /**
+     * Get the label of a value, trimmed.
+     *
+     * A value made of spaces only must count as empty: it would be an
+     * invisible key of a group layout and an invisible keyword.
+     */
     protected function label(ValueRepresentation $value): string
     {
         $resource = $value->valueResource();
-        return $resource
+        return trim($resource
             ? (string) $resource->displayTitle()
-            : (string) ($value->value() ?: $value->uri());
+            : (string) ($value->value() ?: $value->uri()));
     }
 }
