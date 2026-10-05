@@ -107,8 +107,11 @@ class PlayerController extends AbstractActionController
         $html = strtr($html, ['</head>' => $link . '</head>']);
 
         // The script of the module is injected in the page of the viewer, which
-        // is the only document of the iframe, and after the scripts of the
-        // viewer, that it completes. strtr() is a no-op when "</body>" is
+        // is the only document of the iframe, after the libraries of the viewer
+        // that it completes, but before viz.js: that one fetches the config as
+        // soon as it runs and may start the viewer before a script appended at
+        // the end of the body is executed, so a wrapper of Canvas() installed
+        // there would be skipped. strtr() is a no-op when the markers are
         // missing, so the page is returned as-is instead of breaking: the
         // script and the button are only improvements, not required parts of
         // the page.
@@ -119,11 +122,15 @@ class PlayerController extends AbstractActionController
         $script = '<script src="'
             . htmlspecialchars($assetUrl('js/viewer.js', 'Vikus'), ENT_QUOTES)
             . '" data-vikus-hint="' . htmlspecialchars($hint, ENT_QUOTES) . '"></script>';
-        $script .= $this->mapScript($target, $assetUrl);
+        $viz = '<script src="js/viz.js"></script>';
+        $html = str_contains($html, $viz)
+            ? strtr($html, [$viz => $script . $viz])
+            : strtr($html, ['</body>' => $script . '</body>']);
+        $end = $this->mapScript($target, $assetUrl);
         if ($target['allowed']) {
-            $script .= $this->regenerateForm();
+            $end .= $this->regenerateForm();
         }
-        $html = strtr($html, ['</body>' => $script . '</body>']);
+        $html = strtr($html, ['</body>' => $end . '</body>']);
 
         $response = $this->getResponse();
         $response->getHeaders()->addHeaderLine('Content-Type', 'text/html; charset=utf-8');

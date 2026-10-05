@@ -153,3 +153,63 @@
         return originalSetMode.apply(utils, arguments);
     };
 })();
+
+/**
+ * Expose the items and keep the ones without year in the other layouts.
+ *
+ * viz.js declares a global "data" but only fills a local one, so the array
+ * given to canvas.init() is exposed here as "window.data" (map.js reads it).
+ * The layout of the time places an item without year at a NaN position, and
+ * the easing of the renderer never moves a NaN position again, so the item is
+ * lost for every later layout and leaves a hole in its column. Such an item
+ * is hidden in the time layout, with a finite position, and shown again where
+ * a layout gives it a place.
+ */
+(function () {
+    'use strict';
+
+    if (typeof Canvas !== 'function') {
+        return;
+    }
+
+    var original = Canvas;
+    Canvas = function () {
+        var canvas = original.apply(this, arguments);
+        var init = canvas.init;
+        canvas.init = function (data) {
+            window.data = data;
+            return init.apply(canvas, arguments);
+        };
+
+        var project = canvas.project;
+        canvas.project = function () {
+            var result = project.apply(canvas, arguments);
+            (window.data || []).forEach(function (d) {
+                if (!d.sprite) {
+                    return;
+                }
+                if (isFinite(d.x1) && isFinite(d.y1)) {
+                    if (d.vikusUnplaced) {
+                        d.vikusUnplaced = false;
+                        d.alpha = d.active ? 1 : 0.2;
+                    }
+                    if (!isFinite(d.sprite.position.x) || !isFinite(d.sprite.position.y)) {
+                        d.sprite.position.x = d.x1;
+                        d.sprite.position.y = d.y1;
+                    }
+                    return;
+                }
+                d.vikusUnplaced = true;
+                d.alpha = 0;
+                d.alpha2 = 0;
+                d.x = d.y = d.x1 = d.y1 = 0;
+                d.sprite.position.x = d.sprite.position.y = 0;
+                if (d.sprite2) {
+                    d.sprite2.position.x = d.sprite2.position.y = 0;
+                }
+            });
+            return result;
+        };
+        return canvas;
+    };
+})();
