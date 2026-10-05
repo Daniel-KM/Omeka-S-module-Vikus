@@ -312,6 +312,17 @@ class VikusFieldset extends Fieldset
                     'step' => 0.1,
                 ],
             ],
+            'map_hide_missing' => [
+                'name' => $name('map_hide_missing'),
+                'type' => Element\Checkbox::class,
+                'options' => [
+                    'label' => 'Hide the items without coordinates', // @translate
+                    'info' => 'The viewer keeps the items absent from the file of the layout in the canvas, dimmed and laid out on a ring around the map. Check this option to make them fully transparent on the map layout, where they mean nothing. The items excluded by the current filter are hidden the same way on this layout.', // @translate
+                ],
+                'attributes' => [
+                    'id' => $id('map_hide_missing'),
+                ],
+            ],
             'image_source' => [
                 'name' => $name('image_source'),
                 'type' => Element\Select::class,

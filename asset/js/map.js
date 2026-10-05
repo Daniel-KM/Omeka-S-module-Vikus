@@ -41,6 +41,12 @@
  *
  * The window being square in projected units, the same zoom fits both axes, and
  * the map is never distorted.
+ *
+ * Hiding the items without coordinates. They are absent from map.csv, so the
+ * viewer marks them inactive and keeps them in the canvas, dimmed and laid out
+ * on a ring around the map, or piled at its corner. The option makes them
+ * transparent while the map layout is active, since a position they do not have
+ * cannot be read on a map.
  */
 (function () {
     'use strict';
@@ -115,6 +121,30 @@
     }).addTo(map);
     map.setView([0, 0], 2);
 
+    // The renderer of the viewer eases "sprite.alpha" toward the properties
+    // "alpha" (the image) and "alpha2" (the detailed one) of the item on every
+    // frame of its own loop, so forcing these two to zero fades the item out
+    // and the loop keeps it there. The loop skips its work while asleep, hence
+    // the wake up, only when something changed. The items are read in the array
+    // "data" of viz.js, the very one given to "canvas.init()": "getView()"
+    // returns at most four ids of the viewport, not the items themselves.
+    var hideMissing = function (canvas) {
+        if (!settings.hideMissing || !canvas.wakeup || !window.data || !window.data.length) {
+            return;
+        }
+        var forced = false;
+        window.data.forEach(function (d) {
+            if (!d.active && (d.alpha !== 0 || d.alpha2 !== 0)) {
+                d.alpha = 0;
+                d.alpha2 = 0;
+                forced = true;
+            }
+        });
+        if (forced) {
+            canvas.wakeup();
+        }
+    };
+
     var visible = false;
     var last = '';
 
@@ -141,6 +171,8 @@
         if (!visible) {
             return;
         }
+
+        hideMissing(canvas);
 
         var t = canvas.zoom.translate();
         var s = canvas.zoom.scale();

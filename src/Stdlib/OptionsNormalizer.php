@@ -89,6 +89,7 @@ class OptionsNormalizer
         $data['map_opacity'] = is_numeric($opacity)
             ? max(0.0, min(1.0, (float) $opacity))
             : (float) ($defaults['map_opacity'] ?? 0.6);
+        $data['map_hide_missing'] = !empty($data['map_hide_missing']);
         $data['columns'] = max(1, min(50, (int) ($data['columns'] ?? 6)));
         $data['height'] = preg_match('~^\d+(\.\d+)?(px|vh|em|rem|%)$~', trim((string) ($data['height'] ?? '')))
             ? trim((string) $data['height'])

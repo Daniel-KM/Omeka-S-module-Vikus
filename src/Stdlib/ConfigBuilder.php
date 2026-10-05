@@ -146,6 +146,7 @@ class ConfigBuilder
             'tiles' => (string) ($options['map_tiles'] ?? OptionsNormalizer::MAP_TILES),
             'attribution' => (string) ($options['map_attribution'] ?? ''),
             'opacity' => (float) ($options['map_opacity'] ?? 0.6),
+            'hideMissing' => !empty($options['map_hide_missing']),
             // The canvas of the viewer becomes transparent to let the map
             // through, so the page carries its background itself.
             'background' => (string) ($style['canvasBackground'] ?? '#ffffff'),
