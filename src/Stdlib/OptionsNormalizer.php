@@ -2,6 +2,7 @@
 
 namespace Vikus\Stdlib;
 
+use Common\Form\Element\ArrayTextarea;
 use Common\Form\Element\DataTextarea;
 use Omeka\Settings\AbstractSettings;
 use Vikus\Form\VikusFieldset;
@@ -56,6 +57,7 @@ class OptionsNormalizer
             $value = $data[$key] ?? null;
             $data[$key] = is_string($value) ? trim($value) : '';
         }
+        $data['layout_titles'] = self::layoutTitles($data['layout_titles'] ?? []);
         if (array_key_exists('timeline_events', $data)) {
             $data['timeline_events'] = self::timelineEvents($data['timeline_events']);
         }
@@ -84,6 +86,31 @@ class OptionsNormalizer
         }
 
         return $data;
+    }
+
+    /**
+     * Normalize the titles of the group layouts, stored as a string by the
+     * form.
+     *
+     * Each line is a pair "term = Title", so the value is an array of titles
+     * by term. A line without title is skipped: it would hide the label of
+     * the property behind an empty navigation button.
+     */
+    protected static function layoutTitles($titles): array
+    {
+        if (is_string($titles)) {
+            $element = new ArrayTextarea();
+            $element->setAsKeyValue(true);
+            $titles = $element->stringToArray($titles);
+        }
+        $result = [];
+        foreach ((array) $titles as $term => $title) {
+            $title = trim((string) $title);
+            if ($title !== '') {
+                $result[(string) $term] = $title;
+            }
+        }
+        return $result;
     }
 
     /**

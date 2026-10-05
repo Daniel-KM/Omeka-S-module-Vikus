@@ -20,6 +20,9 @@ class ConfigBuilder
     /**
      * Build the config of the viewer from the options of a block.
      *
+     * The titles of the group layouts are read live from the options: they
+     * are a presentation only and do not require to rebuild the cache.
+     *
      * @param bool $hasMap Whether the cache contains a map.csv, that is only
      * built when the module Mapping is active and an item has a point.
      */
@@ -39,9 +42,10 @@ class ConfigBuilder
         // navigation when there is only one.
         $layouts = [['title' => 'Time']];
         $titles = ['Time' => true];
+        $layoutTitles = (array) ($options['layout_titles'] ?? []);
         foreach ((array) ($options['properties_group'] ?? []) as $term) {
             $layouts[] = [
-                'title' => $this->uniqueTitle($this->label($term), $titles, $term),
+                'title' => $this->uniqueTitle($layoutTitles[$term] ?? $this->label($term), $titles, $term),
                 'type' => 'group',
                 'groupKey' => DataBuilder::columnGroup($term),
                 'columns' => $columns,

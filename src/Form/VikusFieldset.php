@@ -214,6 +214,22 @@ class VikusFieldset extends Fieldset
                     'data-placeholder' => 'Select properties…', // @translate
                 ],
             ],
+            'layout_titles' => [
+                'name' => $name('layout_titles'),
+                'type' => CommonElement\ArrayTextarea::class,
+                'options' => [
+                    'label' => 'Titles of the group layouts', // @translate
+                    'info' => 'Write one title by line like "dcterms:subject = Themes". The label of the property is used when it is not set. A short title is advised: the navigation buttons of the viewer are narrow.', // @translate
+                    // Important: OptionsNormalizer rebuilds this element in
+                    // the same mode to parse the value stored as a string.
+                    'as_key_value' => true,
+                ],
+                'attributes' => [
+                    'id' => $id('layout_titles'),
+                    'placeholder' => 'dcterms:subject = Themes',
+                    'rows' => 3,
+                ],
+            ],
             'layout_map' => [
                 'name' => $name('layout_map'),
                 'type' => Element\Checkbox::class,
