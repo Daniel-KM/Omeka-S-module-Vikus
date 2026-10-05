@@ -11,11 +11,19 @@ use Vikus\Job\GenerateData;
  * Generate the cache of a viewer when it is missing or outdated.
  *
  * A public page is rendered by any visitor, so a job is dispatched only when
- * no other one is building the same cache.
+ * no other one is building the same cache. Two simultaneous renders may still
+ * dispatch two jobs: it is harmless, since they build the same data in their
+ * own temporary directory and publish the same hash.
  */
 class Generator
 {
     const RUNNING = [Job::STATUS_STARTING, Job::STATUS_IN_PROGRESS];
+
+    /**
+     * A job killed without updating its status keeps its row "in progress"
+     * forever, so a job is only taken into account during one hour.
+     */
+    const RUNNING_MAX_AGE = 3600;
 
     protected CacheStorage $cacheStorage;
 
@@ -60,8 +68,13 @@ class Generator
             'class' => GenerateData::class,
             'status' => self::RUNNING,
         ]);
+        $oldest = time() - self::RUNNING_MAX_AGE;
         foreach ($jobs as $job) {
-            if ((($job->getArgs() ?: [])['key'] ?? null) === $key) {
+            $started = $job->getStarted();
+            if ((($job->getArgs() ?: [])['key'] ?? null) === $key
+                && $started
+                && $started->getTimestamp() >= $oldest
+            ) {
                 return true;
             }
         }

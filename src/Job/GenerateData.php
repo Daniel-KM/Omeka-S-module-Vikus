@@ -149,7 +149,9 @@ class GenerateData extends AbstractJob
             return null;
         }
 
-        $siteSettings = $services->get('Omeka\Settings\Site');
+        // The settings of the site are a shared service without an accessor to
+        // its current target, so a clone is targeted instead of it.
+        $siteSettings = clone $services->get('Omeka\Settings\Site');
         $siteSettings->setTargetId($siteId);
         $options = OptionsNormalizer::fromSettings($siteSettings, $services->get('Config')['vikus']['site_settings']);
         $options['query'] = ['item_set_id' => $itemSetId];
