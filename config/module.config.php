@@ -3,6 +3,11 @@
 namespace Vikus;
 
 return [
+    'service_manager' => [
+        'factories' => [
+            'Vikus\CacheStorage' => Service\Stdlib\CacheStorageFactory::class,
+        ],
+    ],
     'translator' => [
         'translation_file_patterns' => [
             [
