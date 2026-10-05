@@ -3,6 +3,7 @@
 namespace Vikus\Controller;
 
 use Doctrine\ORM\EntityManager;
+use Doctrine\ORM\EntityNotFoundException;
 use Laminas\Mvc\Controller\AbstractActionController;
 use Laminas\View\Model\JsonModel;
 use Omeka\Api\Exception as ApiException;
@@ -126,10 +127,17 @@ class PlayerController extends AbstractActionController
     {
         $blockId = (int) $this->params('block-id');
         $block = $this->entityManager->find(SitePageBlock::class, $blockId);
-        if (!$block
-            || $block->getLayout() !== 'vikus'
-            || $block->getPage()->getSite()->getSlug() !== $this->params('site-slug')
-        ) {
+        // The page is a lazy proxy and the visibility filter of doctrine hides
+        // the private ones from a visitor, so loading it throws instead of
+        // returning null: this is a missing page for the current user.
+        try {
+            if (!$block
+                || $block->getLayout() !== 'vikus'
+                || $block->getPage()->getSite()->getSlug() !== $this->params('site-slug')
+            ) {
+                throw new NotFoundException;
+            }
+        } catch (EntityNotFoundException $e) {
             throw new NotFoundException;
         }
 
