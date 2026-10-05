@@ -139,6 +139,22 @@ class VikusFieldset extends Fieldset
                     'data-placeholder' => 'Select a property…', // @translate
                 ],
             ],
+            'year_precision' => [
+                'name' => $name('year_precision'),
+                'type' => Element\Select::class,
+                'options' => [
+                    'label' => 'Precision of the year', // @translate
+                    'info' => 'The year is rounded down to the first year of its decade or of its century, so the columns of the time layout are wider and the images are bigger at the first display.', // @translate
+                    'value_options' => [
+                        'year' => 'Year', // @translate
+                        'decade' => 'Decade', // @translate
+                        'century' => 'Century', // @translate
+                    ],
+                ],
+                'attributes' => [
+                    'id' => $id('year_precision'),
+                ],
+            ],
             'property_keywords' => [
                 'name' => $name('property_keywords'),
                 'type' => OmekaElement\PropertySelect::class,

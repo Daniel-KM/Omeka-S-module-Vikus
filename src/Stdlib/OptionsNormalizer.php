@@ -19,6 +19,8 @@ class OptionsNormalizer
 
     const FILTER_TYPES = ['tags', 'hierarchical', 'crossfilter'];
 
+    const YEAR_PRECISIONS = ['year', 'decade', 'century'];
+
     /**
      * Read the normalized options of a viewer from the settings of a site.
      *
@@ -69,6 +71,9 @@ class OptionsNormalizer
         $data['filter_type'] = in_array($data['filter_type'] ?? null, self::FILTER_TYPES, true)
             ? $data['filter_type']
             : 'tags';
+        $data['year_precision'] = in_array($data['year_precision'] ?? null, self::YEAR_PRECISIONS, true)
+            ? $data['year_precision']
+            : 'year';
 
         foreach (array_keys(VikusFieldset::STYLES) as $key) {
             $key = 'style_' . $key;

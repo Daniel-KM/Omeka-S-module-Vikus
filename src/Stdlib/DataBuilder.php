@@ -21,6 +21,7 @@ class DataBuilder
         'query',
         'property_year',
         'property_year_annotation',
+        'year_precision',
         'property_keywords',
         'properties_detail',
         'timeline_events',
@@ -89,6 +90,23 @@ class DataBuilder
         return preg_match('~-?\d{4}~', $value, $matches)
             ? (string) (int) $matches[0]
             : '';
+    }
+
+    /**
+     * Round a year down to the first year of its decade or of its century.
+     *
+     * The division is a floor one, so a negative year is rounded away from
+     * zero like a positive one is rounded toward the past: the decade of
+     * "-45" begins at "-50" and its century at "-100". An empty year stays
+     * empty and an unknown precision keeps the year as is.
+     */
+    public static function roundYear(string $year, string $precision): string
+    {
+        $step = ['decade' => 10, 'century' => 100][$precision] ?? 1;
+        if ($year === '' || $step === 1) {
+            return $year;
+        }
+        return (string) ((int) floor((int) $year / $step) * $step);
     }
 
     public static function column(string $term): string
@@ -373,7 +391,8 @@ class DataBuilder
      * When a property of the annotation is set, the year is the first one
      * found in the annotations of the values of the property of the year:
      * many collections carry the dating of a value (an author, an event) in
-     * its annotation and not in the item itself.
+     * its annotation and not in the item itself. The year is then rounded
+     * according to the precision.
      */
     protected function year(ItemRepresentation $item, array $options): string
     {
@@ -381,9 +400,10 @@ class DataBuilder
         if ($term === '') {
             return '';
         }
+        $precision = (string) ($options['year_precision'] ?? 'year');
         $termAnnotation = (string) ($options['property_year_annotation'] ?? '');
         if ($termAnnotation === '') {
-            return self::extractYear((string) $item->value($term));
+            return self::roundYear(self::extractYear((string) $item->value($term)), $precision);
         }
         foreach ($item->value($term, ['all' => true]) as $value) {
             $annotation = $value->valueAnnotation();
@@ -393,7 +413,7 @@ class DataBuilder
             foreach ($annotation->value($termAnnotation, ['all' => true]) as $annotationValue) {
                 $year = self::extractYear((string) $annotationValue);
                 if ($year !== '') {
-                    return $year;
+                    return self::roundYear($year, $precision);
                 }
             }
         }

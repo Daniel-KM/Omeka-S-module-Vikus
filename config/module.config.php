@@ -95,6 +95,7 @@ return [
         'site_settings' => [
             'vikus_property_year' => 'dcterms:date',
             'vikus_property_year_annotation' => '',
+            'vikus_year_precision' => 'year',
             'vikus_property_keywords' => ['dcterms:subject'],
             'vikus_filter_type' => 'tags',
             'vikus_properties_detail' => [
@@ -130,6 +131,7 @@ return [
                 'timeline_events' => [],
                 'property_year' => 'dcterms:date',
                 'property_year_annotation' => '',
+                'year_precision' => 'year',
                 'property_keywords' => ['dcterms:subject'],
                 'filter_type' => 'tags',
                 'properties_detail' => [
