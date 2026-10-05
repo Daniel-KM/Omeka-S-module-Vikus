@@ -10,7 +10,7 @@ class SiteSettingsFieldset extends Fieldset
      * Options set by the block only: the resource page block builds them from
      * the item set itself.
      */
-    const SKIP = ['query', 'title', 'info'];
+    const SKIP = ['query', 'title', 'info', 'timeline_events'];
 
     protected $label = 'Vikus Viewer'; // @translate
 

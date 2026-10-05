@@ -21,6 +21,7 @@ class DataBuilder
         'property_year',
         'property_keywords',
         'properties_detail',
+        'timeline_events',
         'image_source',
         'link_to_item',
         'info',
@@ -100,12 +101,7 @@ class DataBuilder
         $handle = fopen($dir . '/data.csv', 'w');
         fputcsv($handle, $headers, ',', '"', '');
 
-        // The viewer always loads the timeline file, so it is written even
-        // when it has no row: a missing url makes it request "<base>/undefined"
-        // and log a loading error in the console.
-        $timeline = fopen($dir . '/timeline.csv', 'w');
-        fputcsv($timeline, ['year', 'title', 'description'], ',', '"', '');
-        fclose($timeline);
+        $this->buildTimeline($options, $dir);
 
         $query = ['site_id' => $site->id(), 'has_media' => 1] + (array) ($options['query'] ?? []);
         $query['sort_by'] = 'id';
@@ -156,6 +152,33 @@ class DataBuilder
 
         fclose($handle);
         return $sources;
+    }
+
+    /**
+     * Write timeline.csv, whose rows are events displayed under the years.
+     *
+     * The viewer reads the columns "titel" (german spelling), "text" and
+     * "extra", and it always loads the file, so it is written even when it has
+     * no row: a missing url makes it request "<base>/undefined" and log a
+     * loading error in the console.
+     */
+    protected function buildTimeline(array $options, string $dir): void
+    {
+        $handle = fopen($dir . '/timeline.csv', 'w');
+        fputcsv($handle, ['year', 'titel', 'text', 'extra'], ',', '"', '');
+        foreach ((array) ($options['timeline_events'] ?? []) as $event) {
+            $year = self::extractYear((string) ($event['year'] ?? ''));
+            if ($year === '') {
+                continue;
+            }
+            fputcsv($handle, [
+                $year,
+                (string) ($event['title'] ?? ''),
+                (string) ($event['text'] ?? ''),
+                (string) ($event['extra'] ?? ''),
+            ], ',', '"', '');
+        }
+        fclose($handle);
     }
 
     protected function imageMedia(ItemRepresentation $item): ?MediaRepresentation

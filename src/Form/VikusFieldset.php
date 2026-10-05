@@ -2,6 +2,7 @@
 
 namespace Vikus\Form;
 
+use Common\Form\Element as CommonElement;
 use Laminas\Form\Element;
 use Laminas\Form\Fieldset;
 use Omeka\Form\Element as OmekaElement;
@@ -21,6 +22,16 @@ class VikusFieldset extends Fieldset
         'infoBackground' => 'Background of the info panel', // @translate
         'infoFontColor' => 'Font color of the info panel', // @translate
         'searchbarBackground' => 'Background of the search bar', // @translate
+    ];
+
+    /**
+     * Keys of an event of the timeline, in the order of timeline.csv.
+     */
+    const TIMELINE_KEYS = [
+        'year' => null,
+        'title' => null,
+        'text' => null,
+        'extra' => null,
     ];
 
     public function init(): void
@@ -80,6 +91,22 @@ class VikusFieldset extends Fieldset
                 'attributes' => [
                     'id' => $id('info'),
                     'rows' => 6,
+                ],
+            ],
+            'timeline_events' => [
+                'name' => $name('timeline_events'),
+                'type' => CommonElement\DataTextarea::class,
+                'options' => [
+                    'label' => 'Events of the timeline', // @translate
+                    'info' => 'Write one event by line like "1789 = Night of the 4th August = Abolition of feudalism = Extra note". Only the year is required.', // @translate
+                    // Important: these options should be set in the block
+                    // layout too.
+                    'data_options' => self::TIMELINE_KEYS,
+                ],
+                'attributes' => [
+                    'id' => $id('timeline_events'),
+                    'placeholder' => '',
+                    'rows' => 5,
                 ],
             ],
             'property_year' => [

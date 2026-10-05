@@ -2,6 +2,7 @@
 
 namespace Vikus\Stdlib;
 
+use Common\Form\Element\DataTextarea;
 use Omeka\Settings\AbstractSettings;
 use Vikus\Form\VikusFieldset;
 
@@ -47,6 +48,9 @@ class OptionsNormalizer
         foreach (['property_keywords', 'properties_detail'] as $key) {
             $data[$key] = array_values(array_filter((array) ($data[$key] ?? [])));
         }
+        if (array_key_exists('timeline_events', $data)) {
+            $data['timeline_events'] = self::timelineEvents($data['timeline_events']);
+        }
         $data['link_to_item'] = !empty($data['link_to_item']);
         $data['columns'] = max(1, min(50, (int) ($data['columns'] ?? 6)));
         $data['height'] = preg_match('~^\d+(\.\d+)?(px|vh|em|rem|%)$~', trim((string) ($data['height'] ?? '')))
@@ -65,5 +69,30 @@ class OptionsNormalizer
         }
 
         return $data;
+    }
+
+    /**
+     * Normalize the events of the timeline, stored as a string by the form.
+     *
+     * Each event is a row with the keys of VikusFieldset::TIMELINE_KEYS. The
+     * events without year are skipped: the viewer places a row of the timeline
+     * in the column of its year.
+     */
+    protected static function timelineEvents($events): array
+    {
+        if (is_string($events)) {
+            $element = new DataTextarea();
+            $element->setDataOptions(VikusFieldset::TIMELINE_KEYS);
+            $events = $element->stringToArray($events);
+        }
+        $result = [];
+        foreach ((array) $events as $event) {
+            $event = array_replace(VikusFieldset::TIMELINE_KEYS, array_intersect_key((array) $event, VikusFieldset::TIMELINE_KEYS));
+            $event = array_map(fn ($value): string => trim((string) $value), $event);
+            if ($event['year'] !== '') {
+                $result[] = $event;
+            }
+        }
+        return $result;
     }
 }

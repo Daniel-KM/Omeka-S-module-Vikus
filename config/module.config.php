@@ -123,6 +123,7 @@ return [
                 'query' => [],
                 'title' => '',
                 'info' => '',
+                'timeline_events' => [],
                 'property_year' => 'dcterms:date',
                 'property_keywords' => ['dcterms:subject'],
                 'properties_detail' => [
