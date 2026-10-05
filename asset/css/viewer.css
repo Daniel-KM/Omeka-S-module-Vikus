@@ -37,3 +37,17 @@
     text-align: center;
     pointer-events: none;
 }
+
+/*
+ * The labels of the years of the timeline.
+ *
+ * The viewer scales the font from 7 px to 20 px with the zoom and sets it
+ * inline on the element, so the rule is an important one. A decade is about
+ * 45 px wide at the first display, where "1880" fits at 11 px, and the label
+ * is kept on a single line so that it is not cut in two.
+ */
+
+.timeline .year {
+    font-size: 11px !important;
+    white-space: nowrap;
+}
