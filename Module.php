@@ -36,6 +36,7 @@ use Omeka\Form\SettingForm;
 use Omeka\Module\AbstractModule;
 use Omeka\Module\Exception\ModuleCannotInstallException;
 use Vikus\Job\GenerateData;
+use Vikus\Stdlib\CacheStorage;
 use Vikus\Stdlib\DataBuilder;
 
 /**
@@ -147,29 +148,30 @@ class Module extends AbstractModule
         /** @var \Omeka\Entity\SitePage $page */
         $page = $event->getParam('response')->getContent();
 
-        $blockIds = [];
+        $keys = [];
         $blocks = [];
         foreach ($page->getBlocks() as $block) {
             if ($block->getLayout() !== 'vikus' || !$block->getId()) {
                 continue;
             }
-            $blockIds[] = $block->getId();
+            $keys[] = CacheStorage::blockKey($block->getId());
             $blocks[$block->getId()] = ($block->getData() ?? []) + $defaults;
         }
 
         foreach ($blocks as $blockId => $data) {
+            $key = CacheStorage::blockKey($blockId);
             $hash = DataBuilder::hash($data);
-            if (($storage->readMeta($blockId)['hash'] ?? null) !== $hash) {
+            if (($storage->readMeta($key)['hash'] ?? null) !== $hash) {
                 // Delete the current cache before dispatching: the block may
                 // have just inherited the id (and so the cache) of a different
                 // vikus block through a reorder or an insertion, and must not
                 // serve its dataset while the job is running.
-                $storage->delete($blockId);
-                $services->get('Omeka\Job\Dispatcher')->dispatch(GenerateData::class, ['block_id' => $blockId]);
+                $storage->delete($key);
+                $services->get('Omeka\Job\Dispatcher')->dispatch(GenerateData::class, ['key' => $key]);
             }
         }
 
-        $this->purge($page, $blockIds);
+        $this->purge($page, $keys);
     }
 
     public function handleSitePageDelete(Event $event): void
@@ -189,12 +191,12 @@ class Module extends AbstractModule
     /**
      * Delete the cache of the blocks of a page, except the ones to keep.
      */
-    protected function purge(SitePage $page, array $keepBlockIds): void
+    protected function purge(SitePage $page, array $keepKeys): void
     {
         $storage = $this->getServiceLocator()->get('Vikus\CacheStorage');
-        foreach (array_diff($storage->listBlockIds(), $keepBlockIds) as $blockId) {
-            if (($storage->readMeta($blockId)['page_id'] ?? null) === $page->getId()) {
-                $storage->delete($blockId);
+        foreach (array_diff($storage->listKeys(), $keepKeys) as $key) {
+            if (($storage->readMeta($key)['page_id'] ?? null) === $page->getId()) {
+                $storage->delete($key);
             }
         }
     }

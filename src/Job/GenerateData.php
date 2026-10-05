@@ -4,6 +4,7 @@ namespace Vikus\Job;
 
 use Omeka\Entity\SitePageBlock;
 use Omeka\Job\AbstractJob;
+use Vikus\Stdlib\CacheStorage;
 use Vikus\Stdlib\DataBuilder;
 
 class GenerateData extends AbstractJob
@@ -12,35 +13,31 @@ class GenerateData extends AbstractJob
     {
         $services = $this->getServiceLocator();
         $logger = $services->get('Omeka\Logger');
-        $blockId = (int) $this->getArg('block_id');
+        $key = (string) $this->getArg('key');
 
-        $block = $services->get('Omeka\EntityManager')->find(SitePageBlock::class, $blockId);
-        if (!$block || $block->getLayout() !== 'vikus') {
+        $target = $this->target($key);
+        if (!$target) {
             $logger->err(
-                'The block #{block_id} is not a Vikus block.', // @translate
-                ['block_id' => $blockId]
+                'The cache "{key}" is not a Vikus one.', // @translate
+                ['key' => $key]
             );
             return;
         }
+        [$options, $site, $meta] = $target;
 
-        $defaults = $services->get('Config')['vikus']['block_settings']['vikus'];
-        $options = ($block->getData() ?? []) + $defaults;
         $hash = DataBuilder::hash($options);
-        $page = $block->getPage();
-        $site = $services->get('Omeka\ApiManager')->read('sites', $page->getSite()->getId())->getContent();
         $maxItems = (int) $services->get('Omeka\Settings')->get('vikus_max_items', 10000);
-        $pageId = $page->getId();
 
         $storage = $services->get('Vikus\CacheStorage');
-        $dir = $storage->prepareTemp($blockId);
+        $dir = $storage->prepareTemp($key);
         $shouldStop = fn (): bool => $this->shouldStop();
         try {
             $sources = $services->get('Vikus\DataBuilder')->build($options, $site, $dir, $maxItems, $shouldStop);
             if ($this->shouldStop()) {
                 $storage->discardTemp($dir);
                 $logger->notice(
-                    'Block #{block_id}: the generation was stopped.', // @translate
-                    ['block_id' => $blockId]
+                    'Vikus cache "{key}": the generation was stopped.', // @translate
+                    ['key' => $key]
                 );
                 return;
             }
@@ -48,44 +45,41 @@ class GenerateData extends AbstractJob
             if ($this->shouldStop()) {
                 $storage->discardTemp($dir);
                 $logger->notice(
-                    'Block #{block_id}: the generation was stopped.', // @translate
-                    ['block_id' => $blockId]
+                    'Vikus cache "{key}": the generation was stopped.', // @translate
+                    ['key' => $key]
                 );
                 return;
             }
             if (@file_put_contents($dir . '/info.md', (string) ($options['info'] ?? '')) === false) {
                 throw new \RuntimeException(sprintf('Unable to write file "%s/info.md".', $dir));
             }
-            $meta = json_encode([
+            $meta += [
+                'key' => $key,
                 'hash' => $hash,
                 'total' => count($sources),
-                'page_id' => $pageId,
                 'generated' => (new \DateTimeImmutable())->format(DATE_ATOM),
-            ]);
-            if (@file_put_contents($dir . '/meta.json', $meta) === false) {
+            ];
+            if (@file_put_contents($dir . '/meta.json', json_encode($meta)) === false) {
                 throw new \RuntimeException(sprintf('Unable to write file "%s/meta.json".', $dir));
             }
 
-            // Reload the block to guard against a concurrent update: if its
+            // Reload the target to guard against a concurrent update: if its
             // options changed (or it was removed) while this job was building
-            // the cache, another job was dispatched for the same block, and its
-            // result, not this one, must win. The block read above is detached,
-            // since the builder clears the entity manager, so it is fetched
-            // again instead of being refreshed.
-            $current = $services->get('Omeka\EntityManager')->find(SitePageBlock::class, $blockId);
-            $currentHash = $current && $current->getLayout() === 'vikus'
-                ? DataBuilder::hash(($current->getData() ?? []) + $defaults)
-                : null;
-            if ($currentHash !== $hash) {
+            // the cache, another job was dispatched for the same key, and its
+            // result, not this one, must win. The target read above is
+            // detached, since the builder clears the entity manager, so it is
+            // fetched again instead of being refreshed.
+            $current = $this->target($key);
+            if (!$current || DataBuilder::hash($current[0]) !== $hash) {
                 $storage->discardTemp($dir);
                 $logger->notice(
-                    'Block #{block_id}: the options changed during the generation, the result was discarded.', // @translate
-                    ['block_id' => $blockId]
+                    'Vikus cache "{key}": the options changed during the generation, the result was discarded.', // @translate
+                    ['key' => $key]
                 );
                 return;
             }
 
-            $storage->publish($blockId, $dir);
+            $storage->publish($key, $dir);
         } catch (\Throwable $e) {
             $storage->discardTemp($dir);
             throw $e;
@@ -93,19 +87,47 @@ class GenerateData extends AbstractJob
 
         if (!$sources) {
             $logger->warn(
-                'Block #{block_id}: no item with an image.', // @translate
-                ['block_id' => $blockId]
+                'Vikus cache "{key}": no item with an image.', // @translate
+                ['key' => $key]
             );
         }
         if ($failed) {
             $logger->warn(
-                'Block #{block_id}: the thumbnail of {count} items is not readable: {item_ids}.', // @translate
-                ['block_id' => $blockId, 'count' => count($failed), 'item_ids' => implode(', ', $failed)]
+                'Vikus cache "{key}": the thumbnail of {count} items is not readable: {item_ids}.', // @translate
+                ['key' => $key, 'count' => count($failed), 'item_ids' => implode(', ', $failed)]
             );
         }
         $logger->notice(
-            'Block #{block_id}: {total} items generated.', // @translate
-            ['block_id' => $blockId, 'total' => count($sources)]
+            'Vikus cache "{key}": {total} items generated.', // @translate
+            ['key' => $key, 'total' => count($sources)]
         );
+    }
+
+    /**
+     * Resolve a cache key into its options, its site and its own meta data.
+     *
+     * @return array|null [options, site, meta]
+     */
+    protected function target(string $key): ?array
+    {
+        $services = $this->getServiceLocator();
+        $ids = CacheStorage::parseKey($key);
+        if (!$ids || !isset($ids['block_id'])) {
+            return null;
+        }
+
+        $defaults = $services->get('Config')['vikus']['block_settings']['vikus'];
+        $block = $services->get('Omeka\EntityManager')->find(SitePageBlock::class, $ids['block_id']);
+        if (!$block || $block->getLayout() !== 'vikus') {
+            return null;
+        }
+        $page = $block->getPage();
+        $site = $services->get('Omeka\ApiManager')->read('sites', $page->getSite()->getId())->getContent();
+
+        return [
+            ($block->getData() ?? []) + $defaults,
+            $site,
+            ['page_id' => $page->getId()],
+        ];
     }
 }

@@ -23,7 +23,7 @@ class Vikus extends AbstractHelper
     public function __invoke(SitePageBlockRepresentation $block): string
     {
         $view = $this->getView();
-        $meta = $this->cacheStorage->readMeta($block->id());
+        $meta = $this->cacheStorage->readMeta(CacheStorage::blockKey($block->id()));
 
         $status = !$meta ? 'pending' : (empty($meta['total']) ? 'empty' : 'ready');
         $vars = [

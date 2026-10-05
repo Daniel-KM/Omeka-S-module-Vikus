@@ -9,6 +9,13 @@ use RuntimeException;
 
 class CacheStorage
 {
+    /**
+     * A cache is keyed by a page block ("b{id}") or by an item set in a site
+     * ("s{site-id}-r{item-set-id}"): the visible items and the links of an item
+     * set depend on the site.
+     */
+    const KEY_PATTERN = '~^(?:b\d+|s\d+-r\d+)$~';
+
     protected string $basePath;
 
     protected string $baseUrl;
@@ -19,19 +26,47 @@ class CacheStorage
         $this->baseUrl = rtrim($baseUrl, '/') . '/vikus';
     }
 
-    public function path(int $blockId): string
+    public static function blockKey(int $blockId): string
     {
-        return $this->basePath . '/b' . $blockId;
+        return 'b' . $blockId;
     }
 
-    public function url(int $blockId): string
+    public static function itemSetKey(int $siteId, int $itemSetId): string
     {
-        return $this->baseUrl . '/b' . $blockId;
+        return 's' . $siteId . '-r' . $itemSetId;
     }
 
-    public function readMeta(int $blockId): array
+    /**
+     * Split a key into its ids, or return null when it is not a valid key.
+     *
+     * @return array|null Either ["block_id" => int] or ["site_id" => int,
+     * "item_set_id" => int].
+     */
+    public static function parseKey(string $key): ?array
     {
-        $file = $this->path($blockId) . '/meta.json';
+        $matches = [];
+        if (preg_match('~^b(\d+)$~', $key, $matches)) {
+            return ['block_id' => (int) $matches[1]];
+        }
+        if (preg_match('~^s(\d+)-r(\d+)$~', $key, $matches)) {
+            return ['site_id' => (int) $matches[1], 'item_set_id' => (int) $matches[2]];
+        }
+        return null;
+    }
+
+    public function path(string $key): string
+    {
+        return $this->basePath . '/' . $this->checkKey($key);
+    }
+
+    public function url(string $key): string
+    {
+        return $this->baseUrl . '/' . $this->checkKey($key);
+    }
+
+    public function readMeta(string $key): array
+    {
+        $file = $this->path($key) . '/meta.json';
         return is_file($file)
             ? json_decode((string) file_get_contents($file), true) ?: []
             : [];
@@ -40,14 +75,14 @@ class CacheStorage
     /**
      * Create a unique, empty temporary directory and return its path.
      *
-     * The directory is unique per call (not per block) so that two concurrent
-     * jobs building the same block never share, and so never wipe, each other's
+     * The directory is unique per call (not per key) so that two concurrent
+     * jobs building the same cache never share, and so never wipe, each other's
      * temporary directory.
      */
-    public function prepareTemp(int $blockId): string
+    public function prepareTemp(string $key): string
     {
         do {
-            $temp = $this->path($blockId) . '.tmp-' . bin2hex(random_bytes(8));
+            $temp = $this->path($key) . '.tmp-' . bin2hex(random_bytes(8));
         } while (is_dir($temp));
         if (!mkdir($temp, 0775, true) && !is_dir($temp)) {
             throw new RuntimeException(sprintf('Unable to create directory "%s".', $temp));
@@ -56,13 +91,13 @@ class CacheStorage
     }
 
     /**
-     * Replace the cache of a block by the given temporary directory.
+     * Replace the cache of a key by the given temporary directory.
      */
-    public function publish(int $blockId, string $temp): void
+    public function publish(string $key, string $temp): void
     {
-        $path = $this->path($blockId);
+        $path = $this->path($key);
         // The name of the previous cache is unique per call, so two concurrent
-        // publications of the same block never move it to the same place.
+        // publications of the same key never move it to the same place.
         $old = $path . '.old-' . bin2hex(random_bytes(8));
         $hasPrevious = is_dir($path);
         if ($hasPrevious && !@rename($path, $old)) {
@@ -105,12 +140,12 @@ class CacheStorage
     }
 
     /**
-     * Remove the cache of a block, including any leftover temporary or old
+     * Remove the cache of a key, including any leftover temporary or old
      * directory from an interrupted publish().
      */
-    public function delete(int $blockId): void
+    public function delete(string $key): void
     {
-        $path = $this->path($blockId);
+        $path = $this->path($key);
         $this->remove($path);
         foreach (glob($path . '.{old,tmp-}*', GLOB_ONLYDIR | GLOB_BRACE) ?: [] as $dir) {
             $this->remove($dir);
@@ -123,18 +158,27 @@ class CacheStorage
     }
 
     /**
-     * @return int[]
+     * @return string[]
      */
-    public function listBlockIds(): array
+    public function listKeys(): array
     {
-        $ids = [];
-        foreach (glob($this->basePath . '/b*', GLOB_ONLYDIR) ?: [] as $dir) {
-            if (preg_match('~/b(\d+)$~', $dir, $matches)) {
-                $ids[] = (int) $matches[1];
+        $keys = [];
+        foreach (glob($this->basePath . '/*', GLOB_ONLYDIR) ?: [] as $dir) {
+            $key = basename($dir);
+            if (preg_match(self::KEY_PATTERN, $key)) {
+                $keys[] = $key;
             }
         }
-        sort($ids);
-        return $ids;
+        sort($keys);
+        return $keys;
+    }
+
+    protected function checkKey(string $key): string
+    {
+        if (!preg_match(self::KEY_PATTERN, $key)) {
+            throw new RuntimeException(sprintf('Invalid vikus cache key "%s".', $key));
+        }
+        return $key;
     }
 
     protected function remove(string $dir): void

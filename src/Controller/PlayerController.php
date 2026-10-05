@@ -103,7 +103,7 @@ class PlayerController extends AbstractActionController
         if (!$form->isValid()) {
             return $this->getResponse()->setStatusCode(403);
         }
-        $this->jobDispatcher()->dispatch(GenerateData::class, ['block_id' => $block->id()]);
+        $this->jobDispatcher()->dispatch(GenerateData::class, ['key' => CacheStorage::blockKey($block->id())]);
         return $this->redirect()->toUrl($block->page()->siteUrl());
     }
 
@@ -113,7 +113,7 @@ class PlayerController extends AbstractActionController
         return new JsonModel($this->configBuilder->build(
             $block->data() + $this->blockDefaults,
             $block->page()->title(),
-            $this->cacheStorage->url($block->id())
+            $this->cacheStorage->url(CacheStorage::blockKey($block->id()))
         ));
     }
 
