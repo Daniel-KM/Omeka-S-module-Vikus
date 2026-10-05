@@ -16,10 +16,33 @@ class ImageUrl
      */
     protected $isIiifMedia;
 
-    public function __construct(?callable $iiifMediaUrl, ?callable $isIiifMedia = null)
-    {
+    /**
+     * @var bool
+     */
+    protected $iiifUpscalePrefix;
+
+    /**
+     * @var callable|null
+     */
+    protected $mediaDimension;
+
+    /**
+     * @param bool $iiifUpscalePrefix Prefix the sizes with "^", as the Image
+     * API 3 requires to allow a size larger than the image; the API 2 does not
+     * know the prefix. Only used when the dimensions of the image are unknown.
+     * @param callable|null $mediaDimension Get the width and the height of a
+     * media, as an array, or null when unknown.
+     */
+    public function __construct(
+        ?callable $iiifMediaUrl,
+        ?callable $isIiifMedia = null,
+        bool $iiifUpscalePrefix = false,
+        ?callable $mediaDimension = null
+    ) {
         $this->iiifMediaUrl = $iiifMediaUrl;
         $this->isIiifMedia = $isIiifMedia;
+        $this->iiifUpscalePrefix = $iiifUpscalePrefix;
+        $this->mediaDimension = $mediaDimension;
     }
 
     /**
@@ -36,9 +59,10 @@ class ImageUrl
         if ($imageSource !== 'omeka' && $this->iiifMediaUrl && $this->isImage($media)) {
             $base = ($this->iiifMediaUrl)($media);
             if ($base) {
+                $largest = $this->largestDimension($media);
                 return [
-                    'detail' => $base . '/full/!1024,1024/0/default.jpg',
-                    'big' => $base . '/full/!4096,4096/0/default.jpg',
+                    'detail' => $base . '/full/' . $this->iiifSize(1024, $largest) . '/0/default.jpg',
+                    'big' => $base . '/full/' . $this->iiifSize(4096, $largest) . '/0/default.jpg',
                 ];
             }
         }
@@ -50,6 +74,34 @@ class ImageUrl
             'detail' => $large,
             'big' => $hasImage ? (string) $media->originalUrl() : $large,
         ];
+    }
+
+    /**
+     * Get the size parameter of an image fitting a square, without upscaling.
+     *
+     * A server of the Image API 3 refuses a size larger than the image, or
+     * requires the prefix "^" to allow it, and some servers forbid any upscale:
+     * when the image is known to be smaller than the square, its full size is
+     * requested instead. When its dimensions are unknown, the prefix is the
+     * only way to get the image whatever its size.
+     */
+    protected function iiifSize(int $square, ?int $largest): string
+    {
+        if ($largest !== null) {
+            return $largest <= $square ? 'max' : sprintf('!%1$d,%1$d', $square);
+        }
+        return ($this->iiifUpscalePrefix ? '^' : '') . sprintf('!%1$d,%1$d', $square);
+    }
+
+    protected function largestDimension(AbstractResourceEntityRepresentation $media): ?int
+    {
+        if (!$this->mediaDimension) {
+            return null;
+        }
+        $dimensions = ($this->mediaDimension)($media);
+        $width = (int) ($dimensions['width'] ?? 0);
+        $height = (int) ($dimensions['height'] ?? 0);
+        return $width > 0 && $height > 0 ? max($width, $height) : null;
     }
 
     /**

@@ -22,6 +22,21 @@ class ImageUrlFactory implements FactoryInterface
         $isIiifMedia = $helpers->has('isIiifMedia')
             ? fn ($media, ?string $type = null): bool => (bool) $helpers->get('isIiifMedia')($media, $type)
             : null;
-        return new ImageUrl($iiifMediaUrl, $isIiifMedia);
+        // The version of the api served for an url without version segment.
+        $version = (string) $services->get('Omeka\Settings')->get('iiifserver_media_api_default_version', '2');
+        $mediaDimension = null;
+        if ($helpers->has('mediaDimension')) {
+            $dimensionHelper = $helpers->get('mediaDimension');
+            // The helper reads the dimensions stored in the media data, else
+            // the file itself, and throws for a file that cannot be read.
+            $mediaDimension = function ($media) use ($dimensionHelper): ?array {
+                try {
+                    return $dimensionHelper($media, 'original');
+                } catch (\Throwable $e) {
+                    return null;
+                }
+            };
+        }
+        return new ImageUrl($iiifMediaUrl, $isIiifMedia, version_compare($version, '3', '>='), $mediaDimension);
     }
 }
