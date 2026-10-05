@@ -122,3 +122,34 @@
         show(DELAY);
     }
 })();
+
+/**
+ * Guard utils.setMode() against a title renamed since the url was shared.
+ *
+ * viz.js utils.setMode() looks up the layout by title without checking the
+ * result, so a stale title (a renamed layout, e.g. from the url hash read by
+ * canvas.onhashchange()) leaves canvas.setMode(undefined): the mode becomes
+ * undefined and canvas.getMode().title throws on every later click, freezing
+ * the navigation for the session. The title is replaced by undefined when it
+ * matches no layout, so the upstream code falls back to its own default (the
+ * first layout) instead.
+ */
+(function () {
+    'use strict';
+
+    if (!window.utils || typeof utils.setMode !== 'function') {
+        return;
+    }
+
+    var originalSetMode = utils.setMode;
+    utils.setMode = function (title) {
+        var loader = utils.config && utils.config.loader;
+        if (loader && loader.layouts && !loader.layouts.some(function (d) {
+            return d.title === title;
+        })) {
+            title = undefined;
+        }
+        arguments[0] = title;
+        return originalSetMode.apply(utils, arguments);
+    };
+})();
