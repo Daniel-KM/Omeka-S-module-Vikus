@@ -14,9 +14,14 @@ class ImageUrlFactory implements FactoryInterface
         $iiifMediaUrl = null;
         if ($helpers->has('iiifMediaUrl')) {
             $helper = $helpers->get('iiifMediaUrl');
-            // '3' is the version of the IIIF Image API.
-            $iiifMediaUrl = fn ($media): string => (string) $helper($media, 'imageserver/id', '3');
+            // The version is managed by the helper itself, according to the
+            // settings of the module IiifServer (default version, appended or
+            // not, external image server).
+            $iiifMediaUrl = fn ($media): string => (string) $helper($media, 'imageserver/id', null);
         }
-        return new ImageUrl($iiifMediaUrl);
+        $isIiifMedia = $helpers->has('isIiifMedia')
+            ? fn ($media, ?string $type = null): bool => (bool) $helpers->get('isIiifMedia')($media, $type)
+            : null;
+        return new ImageUrl($iiifMediaUrl, $isIiifMedia);
     }
 }

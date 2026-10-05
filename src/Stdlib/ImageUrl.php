@@ -11,9 +11,15 @@ class ImageUrl
      */
     protected $iiifMediaUrl;
 
-    public function __construct(?callable $iiifMediaUrl)
+    /**
+     * @var callable|null
+     */
+    protected $isIiifMedia;
+
+    public function __construct(?callable $iiifMediaUrl, ?callable $isIiifMedia = null)
     {
         $this->iiifMediaUrl = $iiifMediaUrl;
+        $this->isIiifMedia = $isIiifMedia;
     }
 
     /**
@@ -23,7 +29,7 @@ class ImageUrl
      */
     public function urls(MediaRepresentation $media, string $imageSource): array
     {
-        if ($imageSource !== 'omeka' && $this->iiifMediaUrl) {
+        if ($imageSource !== 'omeka' && $this->iiifMediaUrl && $this->isImage($media)) {
             $base = ($this->iiifMediaUrl)($media);
             if ($base) {
                 return [
@@ -40,5 +46,21 @@ class ImageUrl
             'detail' => $large,
             'big' => $hasImage ? (string) $media->originalUrl() : $large,
         ];
+    }
+
+    /**
+     * Check if a media can be served by an image server.
+     *
+     * A local image (media type "image/*") is servable by the internal or an
+     * external image server. A remote iiif image, whose original file is not
+     * necessarily an image, is servable too when the helper isIiifMedia is
+     * available (see \IiifServer\View\Helper\IiifManifest2).
+     */
+    protected function isImage(MediaRepresentation $media): bool
+    {
+        if (str_starts_with((string) $media->mediaType(), 'image/')) {
+            return true;
+        }
+        return $this->isIiifMedia && ($this->isIiifMedia)($media, 'image');
     }
 }
