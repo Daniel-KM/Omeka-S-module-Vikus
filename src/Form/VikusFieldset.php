@@ -259,10 +259,15 @@ class VikusFieldset extends Fieldset
             ],
             'map_outliers' => [
                 'name' => $name('map_outliers'),
-                'type' => Element\Checkbox::class,
+                'type' => Element\Select::class,
                 'options' => [
-                    'label' => 'Group the isolated points of the map', // @translate
-                    'info' => 'The map fills the canvas, so a few distant points reduce the area where most of the items are to a few pixels. When checked, the isolated points are moved to the border of that area.', // @translate
+                    'label' => 'Isolated points of the map', // @translate
+                    'info' => 'The map fills the canvas, so a few distant points reduce the area where most of the items are to a few pixels. The isolated points are moved to the border of that area, or hidden on the map only, or kept where they are. Below fifty points, nothing is done.', // @translate
+                    'value_options' => [
+                        'clamp' => 'Move them to the border of the dense area', // @translate
+                        'hide' => 'Hide them on the map', // @translate
+                        'none' => 'Keep them where they are', // @translate
+                    ],
                 ],
                 'attributes' => [
                     'id' => $id('map_outliers'),

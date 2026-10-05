@@ -15,9 +15,14 @@ class DataBuilder
     const BATCH = 100;
 
     /**
-     * Minimal count of points required to clamp the isolated ones.
+     * Minimal count of points required to process the isolated ones.
      */
     const MAP_OUTLIERS_MIN = 50;
+
+    /**
+     * Ways to handle the isolated points of the map.
+     */
+    const MAP_OUTLIERS = ['clamp', 'hide', 'none'];
 
     /**
      * Options that require to rebuild the cache when they are updated.
@@ -149,6 +154,31 @@ class DataBuilder
             ];
         }
         return $points;
+    }
+
+    /**
+     * Drop the points outside of the dense area instead of clamping them.
+     *
+     * The same range as clampOutliers() is used, but an isolated point is
+     * removed from the layout: the viewer hides an item absent from the csv, so
+     * it disappears from the map and stays on the other layouts. It is the
+     * choice to make when a point on the border of the map would be read as a
+     * real location. A small collection is kept as is, as when clamping.
+     *
+     * @param array $points Pairs [x, y] by item id.
+     * @return array The kept pairs, in the same order.
+     */
+    public static function hideOutliers(array $points): array
+    {
+        if (count($points) < self::MAP_OUTLIERS_MIN) {
+            return $points;
+        }
+        [$minX, $maxX] = self::percentiles(array_column($points, 0));
+        [$minY, $maxY] = self::percentiles(array_column($points, 1));
+        return array_filter($points, fn (array $point): bool => $point[0] >= $minX
+            && $point[0] <= $maxX
+            && $point[1] >= $minY
+            && $point[1] <= $maxY);
     }
 
     /**
@@ -383,8 +413,11 @@ class DataBuilder
         if (!$points) {
             return;
         }
-        if (!empty($options['map_outliers'])) {
+        $outliers = (string) ($options['map_outliers'] ?? 'clamp');
+        if ($outliers === 'clamp') {
             $points = self::clampOutliers($points);
+        } elseif ($outliers === 'hide') {
+            $points = self::hideOutliers($points);
         }
 
         $handle = fopen($dir . '/map.csv', 'w');
