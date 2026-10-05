@@ -9,6 +9,7 @@ return [
             'Vikus\ImageUrl' => Service\Stdlib\ImageUrlFactory::class,
             'Vikus\DataBuilder' => Service\Stdlib\DataBuilderFactory::class,
             'Vikus\ConfigBuilder' => Service\Stdlib\ConfigBuilderFactory::class,
+            'Vikus\Generator' => Service\Stdlib\GeneratorFactory::class,
         ],
         'invokables' => [
             'Vikus\SpriteBuilder' => Stdlib\SpriteBuilder::class,

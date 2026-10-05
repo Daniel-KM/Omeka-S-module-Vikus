@@ -39,6 +39,8 @@ class Vikus implements ResourcePageBlockLayoutInterface
         $options['query'] = ['item_set_id' => $resource->id()];
         $key = CacheStorage::itemSetKey($site->id(), $resource->id());
 
+        $services->get('Vikus\Generator')->ensure($key, $options);
+
         return $view->partial(self::PARTIAL_NAME, [
             'resource' => $resource,
             'site' => $site,
