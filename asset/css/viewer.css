@@ -1,0 +1,15 @@
+/*
+ * Styles of the module added to the page of the viewer.
+ *
+ * The upstream buttons of the navigation have a fixed height of 15 px, so a
+ * title longer than their 80 px overflows on the next one. They grow with
+ * their content instead, and the line height keeps the rhythm of a single
+ * line box (15 px plus the 6 px and 4 px of the paddings).
+ */
+
+.navi .button {
+    height: auto;
+    min-height: 15px;
+    line-height: 15px;
+    overflow-wrap: anywhere;
+}

@@ -93,6 +93,14 @@ class PlayerController extends AbstractActionController
             throw new RuntimeException('Unable to find the base or the head tag of the viewer.');
         }
 
+        // The styles of the module are injected in the page of the viewer,
+        // which is the only document of the iframe: the css of the block is
+        // loaded by the page of the site, not by the iframe. strtr() is a
+        // no-op when "</head>" is missing.
+        $link = '<link rel="stylesheet" href="'
+            . htmlspecialchars($assetUrl('css/viewer.css', 'Vikus'), ENT_QUOTES) . '">';
+        $html = strtr($html, ['</head>' => $link . '</head>']);
+
         // The script of the module is injected in the page of the viewer, which
         // is the only document of the iframe, and after the scripts of the
         // viewer, that it completes. strtr() is a no-op when "</body>" is
