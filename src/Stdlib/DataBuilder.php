@@ -75,12 +75,18 @@ class DataBuilder
     }
 
     /**
-     * Extract a year from a date, preferring a number of four digits.
+     * Extract a year from a date, as the first number of four digits.
+     *
+     * Four digits are required: a date with unknown digits ("18XX~") or a
+     * truncated one would else give a wrong year. So the years before 1000
+     * must be written with four digits ("0476", "-0050"), as EDTF does. A
+     * longer run of digits is read from its first four ones ("01889" gives
+     * 188).
      */
     public static function extractYear(string $value): string
     {
         $matches = [];
-        return preg_match('~-?\d{4}~', $value, $matches) || preg_match('~-?\d{1,3}~', $value, $matches)
+        return preg_match('~-?\d{4}~', $value, $matches)
             ? (string) (int) $matches[0]
             : '';
     }
