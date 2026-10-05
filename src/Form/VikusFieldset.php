@@ -102,6 +102,14 @@ class VikusFieldset extends Fieldset
                     // Important: OptionsNormalizer rebuilds this element with
                     // the same keys to parse the value stored as a string.
                     'data_options' => self::TIMELINE_KEYS,
+                    // The editor of pairs has no column mode, so the year is
+                    // the key of a row and the three other fields stay in its
+                    // value, separated by "=" as in the stored line.
+                    'pairs_editor' => [
+                        'format' => 'lines',
+                        'key_label' => 'Year', // @translate
+                        'value_label' => 'Title = text = extra note', // @translate
+                    ],
                 ],
                 'attributes' => [
                     'id' => $id('timeline_events'),
@@ -220,9 +228,17 @@ class VikusFieldset extends Fieldset
                 'options' => [
                     'label' => 'Titles of the group layouts', // @translate
                     'info' => 'Write one title by line like "dcterms:subject = Themes". The label of the property is used when it is not set. A short title is advised: the navigation buttons of the viewer are narrow.', // @translate
-                    // Important: OptionsNormalizer rebuilds this element in
-                    // the same mode to parse the value stored as a string.
+                    // Important: OptionsNormalizer rebuilds this element in the
+                    // same mode to parse the value stored as a string.
                     'as_key_value' => true,
+                    // The known keys are read from the select of the group
+                    // layouts, so the picker of the editor lists the chosen
+                    // properties only, each one with its label as the title.
+                    'pairs_editor' => [
+                        'key_label' => 'Property', // @translate
+                        'value_label' => 'Title', // @translate
+                        'key_source' => '#' . $id('properties_group'),
+                    ],
                 ],
                 'attributes' => [
                     'id' => $id('layout_titles'),
