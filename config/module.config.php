@@ -7,6 +7,7 @@ return [
         'factories' => [
             'Vikus\CacheStorage' => Service\Stdlib\CacheStorageFactory::class,
             'Vikus\ImageUrl' => Service\Stdlib\ImageUrlFactory::class,
+            'Vikus\DataBuilder' => Service\Stdlib\DataBuilderFactory::class,
         ],
     ],
     'translator' => [
