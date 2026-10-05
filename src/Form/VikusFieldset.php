@@ -35,12 +35,76 @@ class VikusFieldset extends Fieldset
         'extra' => null,
     ];
 
+    /**
+     * Groups of the elements, keyed by the option key of their first member.
+     */
+    const ELEMENT_GROUPS = [
+        'vikus_items' => [
+            'label' => 'Items', // @translate
+            'keys' => ['query', 'title', 'info'],
+        ],
+        'vikus_alignment' => [
+            'label' => 'Alignment', // @translate
+            'keys' => [
+                'property_year',
+                'property_year_annotation',
+                'year_precision',
+                'property_keywords',
+                'properties_detail',
+                'link_to_item',
+            ],
+        ],
+        'vikus_layouts' => [
+            'label' => 'Layouts', // @translate
+            'keys' => [
+                'columns',
+                'properties_group',
+                'layout_titles',
+                'filter_type',
+                'timeline_events',
+            ],
+        ],
+        'vikus_map' => [
+            'label' => 'Map', // @translate
+            'keys' => [
+                'layout_map',
+                'map_outliers',
+                'map_hide_missing',
+                'map_tiles',
+                'map_attribution',
+                'map_opacity',
+            ],
+        ],
+        'vikus_images' => [
+            'label' => 'Images', // @translate
+            'keys' => ['image_source', 'sprite_size', 'height'],
+        ],
+        'vikus_style' => [
+            'label' => 'Style', // @translate
+            'keys' => null,
+        ],
+    ];
+
     public function init(): void
     {
         $name = fn (string $key): string => 'o:block[__blockIndex__][o:data][' . $key . ']';
         $id = fn (string $key): string => 'vikus-' . strtolower(strtr($key, '_', '-'));
 
-        foreach (self::elementSpecs($name, $id) as $spec) {
+        $elementGroups = [];
+        foreach (self::ELEMENT_GROUPS as $group => $data) {
+            $elementGroups[$group] = $data['label'];
+        }
+        $this->setOption('element_groups', $elementGroups);
+
+        $groupByKey = [];
+        foreach (self::ELEMENT_GROUPS as $group => $data) {
+            foreach ($data['keys'] ?? [] as $key) {
+                $groupByKey[$key] = $group;
+            }
+        }
+
+        foreach (self::elementSpecs($name, $id) as $key => $spec) {
+            $spec['options']['element_group'] = $groupByKey[$key] ?? 'vikus_style';
             $this->add($spec);
         }
     }
