@@ -14,6 +14,52 @@ return [
             'Vikus\SpriteBuilder' => Stdlib\SpriteBuilder::class,
         ],
     ],
+    'view_manager' => [
+        'template_path_stack' => [
+            dirname(__DIR__) . '/view',
+        ],
+        'strategies' => [
+            'ViewJsonStrategy',
+        ],
+    ],
+    'view_helpers' => [
+        'factories' => [
+            'vikus' => Service\ViewHelper\VikusFactory::class,
+        ],
+    ],
+    'block_layouts' => [
+        'invokables' => [
+            'vikus' => Site\BlockLayout\Vikus::class,
+        ],
+    ],
+    'form_elements' => [
+        'invokables' => [
+            Form\VikusFieldset::class => Form\VikusFieldset::class,
+        ],
+    ],
+    'router' => [
+        'routes' => [
+            'site' => [
+                'child_routes' => [
+                    'vikus' => [
+                        'type' => \Laminas\Router\Http\Segment::class,
+                        'options' => [
+                            'route' => '/vikus/:block-id[/:action]',
+                            'constraints' => [
+                                'block-id' => '\d+',
+                                'action' => 'play|config|generate',
+                            ],
+                            'defaults' => [
+                                '__NAMESPACE__' => 'Vikus\Controller',
+                                'controller' => 'Player',
+                                'action' => 'play',
+                            ],
+                        ],
+                    ],
+                ],
+            ],
+        ],
+    ],
     'translator' => [
         'translation_file_patterns' => [
             [

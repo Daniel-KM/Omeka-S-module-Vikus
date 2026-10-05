@@ -1,0 +1,16 @@
+<?php
+/**
+ * @var \Laminas\View\Renderer\PhpRenderer $this
+ * @var \Omeka\Api\Representation\SitePageBlockRepresentation $block
+ * @var string $status "ready", "empty" or "pending"
+ * @var string $height
+ * @var string|null $url
+ */
+?>
+<?php if ($status === 'pending'): ?>
+<p class="vikus-pending"><?= $this->escapeHtml($this->translate('The visualization is being generated.')) ?></p>
+<?php elseif ($status === 'empty'): ?>
+<p class="vikus-empty"><?= $this->escapeHtml($this->translate('No item with an image.')) ?></p>
+<?php else: ?>
+<iframe class="vikus-viewer" src="<?= $this->escapeHtmlAttr($url) ?>" style="height: <?= $this->escapeHtmlAttr($height) ?>;" allowfullscreen="allowfullscreen" loading="lazy" title="<?= $this->escapeHtmlAttr($this->translate('Vikus Viewer')) ?>"></iframe>
+<?php endif; ?>
