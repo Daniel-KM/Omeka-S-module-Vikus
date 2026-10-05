@@ -49,13 +49,16 @@
  * Only an interaction marks it as seen for the session: a slow load would
  * else consume it before it was visible. The session storage may throw
  * (private window, blocked site data), so the hint is simply displayed again
- * in that case.
+ * in that case. It is also displayed again, more briefly, each time the
+ * visitor changes the layout: a group layout or the map has its own scale,
+ * where the images are small again.
  */
 (function () {
     'use strict';
 
     var KEY = 'vikusZoomHint';
     var DELAY = 8000;
+    var DELAY_LAYOUT = 3000;
     var EVENTS = ['wheel', 'touchstart', 'mousedown', 'keydown'];
 
     var script = document.querySelector('script[data-vikus-hint]');
@@ -64,28 +67,25 @@
     if (!text || !page) {
         return;
     }
-    try {
-        if (window.sessionStorage.getItem(KEY)) {
-            return;
-        }
-    } catch (e) {
+
+    var hint = null;
+    var timer = null;
+
+    function show(delay) {
+        hide();
+        hint = document.createElement('div');
+        hint.className = 'vikus-hint';
+        hint.textContent = text;
+        page.appendChild(hint);
+        timer = window.setTimeout(hide, delay);
     }
-
-    var hint = document.createElement('div');
-    hint.className = 'vikus-hint';
-    hint.textContent = text;
-    page.appendChild(hint);
-
-    var timer = window.setTimeout(hide, DELAY);
 
     function hide() {
         window.clearTimeout(timer);
-        if (hint.parentNode) {
+        if (hint && hint.parentNode) {
             hint.parentNode.removeChild(hint);
         }
-        for (var i = 0; i < EVENTS.length; i++) {
-            document.removeEventListener(EVENTS[i], dismiss, true);
-        }
+        hint = null;
     }
 
     function dismiss() {
@@ -100,5 +100,25 @@
     // viewer stops the propagation of the event on the canvas.
     for (var i = 0; i < EVENTS.length; i++) {
         document.addEventListener(EVENTS[i], dismiss, true);
+    }
+
+    // The click follows the mousedown that dismissed the hint, so the hint is
+    // displayed again after it, until the next interaction. A click on the
+    // button of the current layout is ignored by the viewer, so it is ignored
+    // here too.
+    document.addEventListener('click', function (event) {
+        var button = event.target.closest && event.target.closest('.navi .button');
+        if (button && !button.classList.contains('active')) {
+            show(DELAY_LAYOUT);
+        }
+    }, true);
+
+    var seen = false;
+    try {
+        seen = !!window.sessionStorage.getItem(KEY);
+    } catch (e) {
+    }
+    if (!seen) {
+        show(DELAY);
     }
 })();
