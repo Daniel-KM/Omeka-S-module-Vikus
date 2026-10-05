@@ -27,6 +27,7 @@ if (!defined('COMMON_PSR4_FALLBACK')) {
 
 use Common\Stdlib\PsrMessage;
 use Common\TraitModule;
+use Laminas\Mvc\MvcEvent;
 use Omeka\Module\AbstractModule;
 use Omeka\Module\Exception\ModuleCannotInstallException;
 
@@ -41,6 +42,13 @@ class Module extends AbstractModule
     const NAMESPACE = __NAMESPACE__;
 
     use TraitModule;
+
+    public function onBootstrap(MvcEvent $event): void
+    {
+        parent::onBootstrap($event);
+        $acl = $this->getServiceLocator()->get('Omeka\Acl');
+        $acl->allow(null, ['Vikus\Controller\Player']);
+    }
 
     protected function preInstall(): void
     {

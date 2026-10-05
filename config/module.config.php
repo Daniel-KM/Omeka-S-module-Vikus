@@ -14,6 +14,11 @@ return [
             'Vikus\SpriteBuilder' => Stdlib\SpriteBuilder::class,
         ],
     ],
+    'controllers' => [
+        'factories' => [
+            'Vikus\Controller\Player' => Service\Controller\PlayerControllerFactory::class,
+        ],
+    ],
     'view_manager' => [
         'template_path_stack' => [
             dirname(__DIR__) . '/view',
