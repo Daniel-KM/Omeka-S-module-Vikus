@@ -5,9 +5,11 @@ namespace Vikus\Controller;
 use Doctrine\ORM\EntityManager;
 use Laminas\Mvc\Controller\AbstractActionController;
 use Laminas\View\Model\JsonModel;
+use Omeka\Api\Exception as ApiException;
 use Omeka\Api\Representation\SitePageBlockRepresentation;
 use Omeka\Entity\SitePageBlock;
 use Omeka\Mvc\Exception\NotFoundException;
+use RuntimeException;
 use Vikus\Stdlib\CacheStorage;
 use Vikus\Stdlib\ConfigBuilder;
 
@@ -47,12 +49,16 @@ class PlayerController extends AbstractActionController
 
         $assetUrl = $this->viewHelpers()->get('assetUrl');
         $base = dirname($assetUrl('vendor/vikus-viewer/index.html', 'Vikus', false, false, true)) . '/';
-        $html = strtr($html, [
-            '<base target="_blank" />' => '<base href="' . htmlspecialchars($base, ENT_QUOTES) . '" target="_blank" />',
-        ]);
+        $replacement = '<base href="' . htmlspecialchars($base, ENT_QUOTES) . '" target="_blank">';
+        // preg_replace_callback avoids interpreting "$" or "\" in $replacement.
+        $html = preg_replace_callback('~<base\b[^>]*>~', fn () => $replacement, $html, 1, $count);
+        if ($count !== 1) {
+            throw new RuntimeException('Unable to find the base tag of the viewer.');
+        }
 
-        return $this->getResponse()
-            ->setContent($html);
+        $response = $this->getResponse();
+        $response->getHeaders()->addHeaderLine('Content-Type', 'text/html; charset=utf-8');
+        return $response->setContent($html);
     }
 
     public function configAction()
@@ -81,7 +87,11 @@ class PlayerController extends AbstractActionController
             throw new NotFoundException;
         }
 
-        $page = $this->api()->read('site_pages', $block->getPage()->getId())->getContent();
+        try {
+            $page = $this->api()->read('site_pages', $block->getPage()->getId())->getContent();
+        } catch (ApiException\ExceptionInterface) {
+            throw new NotFoundException;
+        }
         foreach ($page->blocks() as $pageBlock) {
             if ($pageBlock->id() === $blockId) {
                 return $pageBlock;
