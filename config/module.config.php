@@ -40,6 +40,7 @@ return [
     'form_elements' => [
         'invokables' => [
             Form\VikusFieldset::class => Form\VikusFieldset::class,
+            Form\SettingsFieldset::class => Form\SettingsFieldset::class,
         ],
     ],
     'router' => [

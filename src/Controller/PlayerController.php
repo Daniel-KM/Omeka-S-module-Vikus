@@ -8,8 +8,10 @@ use Laminas\View\Model\JsonModel;
 use Omeka\Api\Exception as ApiException;
 use Omeka\Api\Representation\SitePageBlockRepresentation;
 use Omeka\Entity\SitePageBlock;
+use Omeka\Form\ConfirmForm;
 use Omeka\Mvc\Exception\NotFoundException;
 use RuntimeException;
+use Vikus\Job\GenerateData;
 use Vikus\Stdlib\CacheStorage;
 use Vikus\Stdlib\ConfigBuilder;
 
@@ -41,7 +43,7 @@ class PlayerController extends AbstractActionController
 
     public function playAction()
     {
-        $this->getBlock();
+        $block = $this->getBlock();
         $html = @file_get_contents($this->viewerPath . '/index.html');
         if ($html === false) {
             throw new NotFoundException;
@@ -56,9 +58,34 @@ class PlayerController extends AbstractActionController
             throw new RuntimeException('Unable to find the base tag of the viewer.');
         }
 
+        // strtr() is a no-op when "</body>" is missing, so the page is returned
+        // as-is instead of breaking: the button is only a convenience for the
+        // admin, not a required part of the page.
+        if ($block->page()->userIsAllowed('update')) {
+            $html = strtr($html, ['</body>' => $this->regenerateForm($block) . '</body>']);
+        }
+
         $response = $this->getResponse();
         $response->getHeaders()->addHeaderLine('Content-Type', 'text/html; charset=utf-8');
         return $response->setContent($html);
+    }
+
+    public function generateAction()
+    {
+        if (!$this->getRequest()->isPost()) {
+            return $this->getResponse()->setStatusCode(405);
+        }
+        $block = $this->getBlock();
+        if (!$block->page()->userIsAllowed('update')) {
+            return $this->getResponse()->setStatusCode(403);
+        }
+        $form = $this->getForm(ConfirmForm::class);
+        $form->setData($this->params()->fromPost());
+        if (!$form->isValid()) {
+            return $this->getResponse()->setStatusCode(403);
+        }
+        $this->jobDispatcher()->dispatch(GenerateData::class, ['block_id' => $block->id()]);
+        return $this->redirect()->toUrl($block->page()->siteUrl());
     }
 
     public function configAction()
@@ -69,6 +96,25 @@ class PlayerController extends AbstractActionController
             $block->page()->title(),
             $this->cacheStorage->url($block->id())
         ));
+    }
+
+    /**
+     * Build the form allowing an admin to regenerate the cache of a block.
+     *
+     * The form targets "_top" because the viewer sets a "<base
+     * target="_blank">", which would otherwise open the redirection in a new
+     * tab instead of leaving the current one.
+     */
+    protected function regenerateForm(SitePageBlockRepresentation $block): string
+    {
+        $helpers = $this->viewHelpers();
+        $form = $this->getForm(ConfirmForm::class);
+        $form->setAttribute('action', $this->url()->fromRoute('site/vikus', ['action' => 'generate'], true));
+        $form->setAttribute('target', '_top');
+        $form->setAttribute('class', 'vikus-regenerate');
+        $form->setAttribute('style', 'position: fixed; bottom: 8px; left: 8px; z-index: 1000;');
+        $form->setButtonLabel($helpers->get('translate')('Regenerate')); // @translate
+        return $helpers->get('form')($form);
     }
 
     /**
