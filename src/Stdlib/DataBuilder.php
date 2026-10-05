@@ -257,6 +257,13 @@ class DataBuilder
             + (array) ($options['query'] ?? []);
         $query['sort_by'] = 'id';
         $query['sort_order'] = 'asc';
+        // The items are read by batches, so the limit of the query cannot be
+        // passed to the api: it caps the generation instead, like the main
+        // setting does, and the smaller of the two wins.
+        $limit = (int) ($query['limit'] ?? 0);
+        if ($limit > 0) {
+            $maxItems = min($limit, $maxItems);
+        }
         $query['limit'] = self::BATCH;
         unset($query['page'], $query['per_page']);
 

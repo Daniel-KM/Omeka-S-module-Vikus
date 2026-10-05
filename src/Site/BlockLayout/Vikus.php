@@ -84,6 +84,7 @@ class Vikus extends AbstractBlockLayout implements TemplateableBlockLayoutInterf
             'fieldset' => $fieldset,
             'query' => $query,
             'itemCount' => $itemCount,
+            'queryLimit' => (int) ($query['limit'] ?? 0),
             'thresholds' => $config['thresholds'],
             'maxItems' => (int) $services->get('Omeka\\Settings')->get('vikus_max_items', 10000),
         ]);
