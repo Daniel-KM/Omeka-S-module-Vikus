@@ -2,6 +2,7 @@
 
 namespace Vikus\Stdlib;
 
+use Doctrine\ORM\EntityManager;
 use Omeka\Api\Manager as ApiManager;
 use Omeka\Api\Representation\ItemRepresentation;
 use Omeka\Api\Representation\MediaRepresentation;
@@ -27,13 +28,20 @@ class DataBuilder
 
     protected ApiManager $api;
 
+    protected EntityManager $entityManager;
+
     protected ImageUrl $imageUrl;
 
     protected string $filesBasePath;
 
-    public function __construct(ApiManager $api, ImageUrl $imageUrl, string $filesBasePath)
-    {
+    public function __construct(
+        ApiManager $api,
+        EntityManager $entityManager,
+        ImageUrl $imageUrl,
+        string $filesBasePath
+    ) {
         $this->api = $api;
+        $this->entityManager = $entityManager;
         $this->imageUrl = $imageUrl;
         $this->filesBasePath = rtrim($filesBasePath, '/');
     }
@@ -137,6 +145,10 @@ class DataBuilder
                     break;
                 }
             }
+            // The identity map keeps every item and value of the batch, so it
+            // must be cleared to build a collection of thousands of items
+            // without exhausting the memory.
+            $this->entityManager->clear();
         }
 
         fclose($handle);

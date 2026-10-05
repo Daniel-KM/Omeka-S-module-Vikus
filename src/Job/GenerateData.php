@@ -69,15 +69,13 @@ class GenerateData extends AbstractJob
             // Reload the block to guard against a concurrent update: if its
             // options changed (or it was removed) while this job was building
             // the cache, another job was dispatched for the same block, and its
-            // result, not this one, must win.
-            try {
-                $services->get('Omeka\EntityManager')->refresh($block);
-                $currentHash = $block->getLayout() === 'vikus'
-                    ? DataBuilder::hash(($block->getData() ?? []) + $defaults)
-                    : null;
-            } catch (\Doctrine\ORM\EntityNotFoundException $e) {
-                $currentHash = null;
-            }
+            // result, not this one, must win. The block read above is detached,
+            // since the builder clears the entity manager, so it is fetched
+            // again instead of being refreshed.
+            $current = $services->get('Omeka\EntityManager')->find(SitePageBlock::class, $blockId);
+            $currentHash = $current && $current->getLayout() === 'vikus'
+                ? DataBuilder::hash(($current->getData() ?? []) + $defaults)
+                : null;
             if ($currentHash !== $hash) {
                 $storage->discardTemp($dir);
                 $logger->notice(
