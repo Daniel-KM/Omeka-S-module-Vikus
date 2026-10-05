@@ -5,8 +5,8 @@ namespace Vikus\Stdlib;
 use Doctrine\ORM\EntityManager;
 use Laminas\I18n\Translator\TranslatorInterface;
 use Omeka\Api\Manager as ApiManager;
+use Omeka\Api\Representation\AbstractResourceEntityRepresentation;
 use Omeka\Api\Representation\ItemRepresentation;
-use Omeka\Api\Representation\MediaRepresentation;
 use Omeka\Api\Representation\SiteRepresentation;
 use Omeka\Api\Representation\ValueRepresentation;
 
@@ -43,13 +43,19 @@ class DataBuilder
 
     protected bool $hasMapping;
 
+    /**
+     * @var callable|null
+     */
+    protected $digitalObjectInline;
+
     public function __construct(
         ApiManager $api,
         EntityManager $entityManager,
         ImageUrl $imageUrl,
         TranslatorInterface $translator,
         string $filesBasePath,
-        bool $hasMapping
+        bool $hasMapping,
+        ?callable $digitalObjectInline = null
     ) {
         $this->api = $api;
         $this->entityManager = $entityManager;
@@ -57,6 +63,7 @@ class DataBuilder
         $this->translator = $translator;
         $this->filesBasePath = rtrim($filesBasePath, '/');
         $this->hasMapping = $hasMapping;
+        $this->digitalObjectInline = $digitalObjectInline;
     }
 
     public static function hash(array $options): string
@@ -143,7 +150,13 @@ class DataBuilder
 
         $this->buildTimeline($options, $dir);
 
-        $query = ['site_id' => $site->id(), 'has_media' => 1] + (array) ($options['query'] ?? []);
+        // The items are filtered on the presence of a media, that is the only
+        // image of an item in a standard install. When digital objects are
+        // available, an item without media may have one, so the filter is
+        // skipped and the items without image are simply not written.
+        $query = ['site_id' => $site->id()]
+            + ($this->digitalObjectInline ? [] : ['has_media' => 1])
+            + (array) ($options['query'] ?? []);
         $query['sort_by'] = 'id';
         $query['sort_order'] = 'asc';
         $query['limit'] = self::BATCH;
@@ -159,7 +172,7 @@ class DataBuilder
                 break;
             }
             foreach ($items as $item) {
-                $media = $this->imageMedia($item);
+                $media = $this->imageResource($item);
                 if (!$media) {
                     continue;
                 }
@@ -292,10 +305,29 @@ class DataBuilder
         fclose($handle);
     }
 
-    protected function imageMedia(ItemRepresentation $item): ?MediaRepresentation
+    /**
+     * Get the resource used as the image of an item.
+     *
+     * The primary media is preferred. When the item has none, the first
+     * digital object linked to it through the properties configured in the
+     * module DigitalObject is used: the module may be absent, so it is only
+     * reached through its optional view helper.
+     */
+    protected function imageResource(ItemRepresentation $item): ?AbstractResourceEntityRepresentation
     {
         $media = $item->primaryMedia();
-        return $media && $media->hasThumbnails() ? $media : null;
+        if ($media && $media->hasThumbnails()) {
+            return $media;
+        }
+        if (!$this->digitalObjectInline) {
+            return null;
+        }
+        foreach (($this->digitalObjectInline)($item) as $digitalObject) {
+            if ($digitalObject->hasThumbnails()) {
+                return $digitalObject;
+            }
+        }
+        return null;
     }
 
     /**
@@ -305,7 +337,7 @@ class DataBuilder
      * medium one may be configured below that size, and an upscale is never
      * done, so it would make the canvas blurry.
      */
-    protected function thumbnailSource(MediaRepresentation $media): string
+    protected function thumbnailSource(AbstractResourceEntityRepresentation $media): string
     {
         foreach (['large', 'medium'] as $type) {
             $path = $this->filesBasePath . '/' . $type . '/' . $media->storageId() . '.jpg';

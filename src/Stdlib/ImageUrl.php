@@ -2,7 +2,7 @@
 
 namespace Vikus\Stdlib;
 
-use Omeka\Api\Representation\MediaRepresentation;
+use Omeka\Api\Representation\AbstractResourceEntityRepresentation;
 
 class ImageUrl
 {
@@ -25,9 +25,13 @@ class ImageUrl
     /**
      * Get the urls of the images of 1024 and 4096 pixels of a media.
      *
+     * The resource is a media or any resource sharing its file api (a digital
+     * object of the module DigitalObject): only the common file methods are
+     * used, so no class of an optional module is referenced.
+     *
      * @return array With keys "detail" and "big".
      */
-    public function urls(MediaRepresentation $media, string $imageSource): array
+    public function urls(AbstractResourceEntityRepresentation $media, string $imageSource): array
     {
         if ($imageSource !== 'omeka' && $this->iiifMediaUrl && $this->isImage($media)) {
             $base = ($this->iiifMediaUrl)($media);
@@ -56,7 +60,7 @@ class ImageUrl
      * necessarily an image, is servable too when the helper isIiifMedia is
      * available (see \IiifServer\View\Helper\IiifManifest2).
      */
-    protected function isImage(MediaRepresentation $media): bool
+    protected function isImage(AbstractResourceEntityRepresentation $media): bool
     {
         if (str_starts_with((string) $media->mediaType(), 'image/')) {
             return true;
