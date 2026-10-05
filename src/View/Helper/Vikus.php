@@ -3,7 +3,7 @@
 namespace Vikus\View\Helper;
 
 use Laminas\View\Helper\AbstractHelper;
-use Omeka\Api\Representation\SitePageBlockRepresentation;
+use Omeka\Api\Representation\SiteRepresentation;
 use Vikus\Stdlib\CacheStorage;
 
 class Vikus extends AbstractHelper
@@ -18,23 +18,24 @@ class Vikus extends AbstractHelper
     }
 
     /**
-     * Render the viewer of a block, or the status of its cache.
+     * Render the viewer of a cache key, or the status of its cache.
      */
-    public function __invoke(SitePageBlockRepresentation $block): string
+    public function __invoke(SiteRepresentation $site, string $key, string $height = '80vh'): string
     {
         $view = $this->getView();
-        $meta = $this->cacheStorage->readMeta(CacheStorage::blockKey($block->id()));
+        $meta = $this->cacheStorage->readMeta($key);
 
         $status = !$meta ? 'pending' : (empty($meta['total']) ? 'empty' : 'ready');
         $vars = [
-            'block' => $block,
+            'site' => $site,
+            'key' => $key,
             'status' => $status,
-            'height' => $block->dataValue('height', '80vh'),
+            'height' => $height,
             'url' => null,
         ];
 
         if ($status === 'ready') {
-            $params = ['site-slug' => $block->page()->site()->slug(), 'block-id' => $block->id()];
+            $params = ['site-slug' => $site->slug(), 'key' => $key];
             // The server url is prepended apart to be compatible with the
             // module Clean Url.
             $configUrl = $view->serverUrl($view->url('site/vikus', $params + ['action' => 'config']));

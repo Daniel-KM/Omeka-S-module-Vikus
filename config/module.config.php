@@ -37,6 +37,11 @@ return [
             'vikus' => Service\ViewHelper\VikusFactory::class,
         ],
     ],
+    'resource_page_block_layouts' => [
+        'invokables' => [
+            'vikus' => Site\ResourcePageBlockLayout\Vikus::class,
+        ],
+    ],
     'block_layouts' => [
         'factories' => [
             'vikus' => Service\BlockLayout\VikusFactory::class,
@@ -56,9 +61,9 @@ return [
                     'vikus' => [
                         'type' => \Laminas\Router\Http\Segment::class,
                         'options' => [
-                            'route' => '/vikus/:block-id[/:action]',
+                            'route' => '/vikus/:key[/:action]',
                             'constraints' => [
-                                'block-id' => '\d+',
+                                'key' => 'b\d+|s\d+-r\d+',
                                 'action' => 'play|config|generate',
                             ],
                             'defaults' => [

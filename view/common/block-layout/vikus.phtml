@@ -2,8 +2,11 @@
 /**
  * @var \Laminas\View\Renderer\PhpRenderer $this
  * @var \Omeka\Api\Representation\SitePageBlockRepresentation $block
+ * @var \Omeka\Api\Representation\SiteRepresentation $site
+ * @var string $key
+ * @var string $height
  */
 ?>
 <div class="block block-vikus">
-    <?= $this->vikus($block) ?>
+    <?= $this->vikus($site, $key, $height) ?>
 </div>

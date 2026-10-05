@@ -6,6 +6,7 @@ use Omeka\Entity\SitePageBlock;
 use Omeka\Job\AbstractJob;
 use Vikus\Stdlib\CacheStorage;
 use Vikus\Stdlib\DataBuilder;
+use Vikus\Stdlib\OptionsNormalizer;
 
 class GenerateData extends AbstractJob
 {
@@ -112,8 +113,11 @@ class GenerateData extends AbstractJob
     {
         $services = $this->getServiceLocator();
         $ids = CacheStorage::parseKey($key);
-        if (!$ids || !isset($ids['block_id'])) {
+        if (!$ids) {
             return null;
+        }
+        if (!isset($ids['block_id'])) {
+            return $this->itemSetTarget($ids['site_id'], $ids['item_set_id']);
         }
 
         $defaults = $services->get('Config')['vikus']['block_settings']['vikus'];
@@ -128,6 +132,32 @@ class GenerateData extends AbstractJob
             ($block->getData() ?? []) + $defaults,
             $site,
             ['page_id' => $page->getId()],
+        ];
+    }
+
+    /**
+     * Resolve an item set of a site into the options of its viewer.
+     *
+     * @return array|null [options, site, meta]
+     */
+    protected function itemSetTarget(int $siteId, int $itemSetId): ?array
+    {
+        $services = $this->getServiceLocator();
+        try {
+            $site = $services->get('Omeka\ApiManager')->read('sites', $siteId)->getContent();
+        } catch (\Omeka\Api\Exception\NotFoundException $e) {
+            return null;
+        }
+
+        $siteSettings = $services->get('Omeka\Settings\Site');
+        $siteSettings->setTargetId($siteId);
+        $options = OptionsNormalizer::fromSettings($siteSettings, $services->get('Config')['vikus']['site_settings']);
+        $options['query'] = ['item_set_id' => $itemSetId];
+
+        return [
+            $options,
+            $site,
+            ['site_id' => $siteId, 'item_set_id' => $itemSetId],
         ];
     }
 }

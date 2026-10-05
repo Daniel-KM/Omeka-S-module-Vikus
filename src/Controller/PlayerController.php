@@ -7,14 +7,15 @@ use Doctrine\ORM\EntityNotFoundException;
 use Laminas\Mvc\Controller\AbstractActionController;
 use Laminas\View\Model\JsonModel;
 use Omeka\Api\Exception as ApiException;
-use Omeka\Api\Representation\SitePageBlockRepresentation;
 use Omeka\Entity\SitePageBlock;
 use Omeka\Form\ConfirmForm;
 use Omeka\Mvc\Exception\NotFoundException;
+use Omeka\Settings\SiteSettings;
 use RuntimeException;
 use Vikus\Job\GenerateData;
 use Vikus\Stdlib\CacheStorage;
 use Vikus\Stdlib\ConfigBuilder;
+use Vikus\Stdlib\OptionsNormalizer;
 
 class PlayerController extends AbstractActionController
 {
@@ -24,7 +25,11 @@ class PlayerController extends AbstractActionController
 
     protected ConfigBuilder $configBuilder;
 
+    protected SiteSettings $siteSettings;
+
     protected array $blockDefaults;
+
+    protected array $siteSettingsDefaults;
 
     protected string $viewerPath;
 
@@ -32,19 +37,23 @@ class PlayerController extends AbstractActionController
         EntityManager $entityManager,
         CacheStorage $cacheStorage,
         ConfigBuilder $configBuilder,
+        SiteSettings $siteSettings,
         array $blockDefaults,
+        array $siteSettingsDefaults,
         string $viewerPath
     ) {
         $this->entityManager = $entityManager;
         $this->cacheStorage = $cacheStorage;
         $this->configBuilder = $configBuilder;
+        $this->siteSettings = $siteSettings;
         $this->blockDefaults = $blockDefaults;
+        $this->siteSettingsDefaults = $siteSettingsDefaults;
         $this->viewerPath = $viewerPath;
     }
 
     public function playAction()
     {
-        $block = $this->getBlock();
+        $target = $this->getTarget();
         $html = @file_get_contents($this->viewerPath . '/index.html');
         if ($html === false) {
             throw new NotFoundException;
@@ -71,16 +80,16 @@ class PlayerController extends AbstractActionController
             throw new RuntimeException('Unable to find the base or the head tag of the viewer.');
         }
 
-        // The script of the module is injected in the page of the viewer,
-        // which is the only document of the iframe, and after the scripts of
-        // the viewer, that it completes. strtr() is a no-op when "</body>" is
+        // The script of the module is injected in the page of the viewer, which
+        // is the only document of the iframe, and after the scripts of the
+        // viewer, that it completes. strtr() is a no-op when "</body>" is
         // missing, so the page is returned as-is instead of breaking: the
         // script and the button are only improvements, not required parts of
         // the page.
         $script = '<script src="'
             . htmlspecialchars($assetUrl('js/viewer.js', 'Vikus'), ENT_QUOTES) . '"></script>';
-        if ($block->page()->userIsAllowed('update')) {
-            $script .= $this->regenerateForm($block);
+        if ($target['allowed']) {
+            $script .= $this->regenerateForm();
         }
         $html = strtr($html, ['</body>' => $script . '</body>']);
 
@@ -91,11 +100,11 @@ class PlayerController extends AbstractActionController
 
     public function generateAction()
     {
-        $block = $this->getBlock();
+        $target = $this->getTarget();
         if (!$this->getRequest()->isPost()) {
             return $this->getResponse()->setStatusCode(405);
         }
-        if (!$block->page()->userIsAllowed('update')) {
+        if (!$target['allowed']) {
             return $this->getResponse()->setStatusCode(403);
         }
         $form = $this->getForm(ConfirmForm::class);
@@ -103,28 +112,28 @@ class PlayerController extends AbstractActionController
         if (!$form->isValid()) {
             return $this->getResponse()->setStatusCode(403);
         }
-        $this->jobDispatcher()->dispatch(GenerateData::class, ['key' => CacheStorage::blockKey($block->id())]);
-        return $this->redirect()->toUrl($block->page()->siteUrl());
+        $this->jobDispatcher()->dispatch(GenerateData::class, ['key' => $target['key']]);
+        return $this->redirect()->toUrl($target['url']);
     }
 
     public function configAction()
     {
-        $block = $this->getBlock();
+        $target = $this->getTarget();
         return new JsonModel($this->configBuilder->build(
-            $block->data() + $this->blockDefaults,
-            $block->page()->title(),
-            $this->cacheStorage->url(CacheStorage::blockKey($block->id()))
+            $target['options'],
+            $target['title'],
+            $this->cacheStorage->url($target['key'])
         ));
     }
 
     /**
-     * Build the form allowing an admin to regenerate the cache of a block.
+     * Build the form allowing an admin to regenerate the cache of a viewer.
      *
      * The form targets "_top" because the viewer sets a "<base
      * target="_blank">", which would otherwise open the redirection in a new
      * tab instead of leaving the current one.
      */
-    protected function regenerateForm(SitePageBlockRepresentation $block): string
+    protected function regenerateForm(): string
     {
         $helpers = $this->viewHelpers();
         $form = $this->getForm(ConfirmForm::class);
@@ -137,13 +146,30 @@ class PlayerController extends AbstractActionController
     }
 
     /**
-     * Get the block of the route when it is a vikus one of the current site.
+     * Get the viewer of the route: a block of a page or an item set of a site.
+     *
+     * @return array Keys "key", "options", "title", "allowed" (right to
+     * regenerate) and "url" (page to return to after a regeneration).
+     */
+    protected function getTarget(): array
+    {
+        $key = (string) $this->params('key');
+        $ids = CacheStorage::parseKey($key);
+        if (!$ids) {
+            throw new NotFoundException;
+        }
+        return isset($ids['block_id'])
+            ? $this->blockTarget($key, $ids['block_id'])
+            : $this->itemSetTarget($key, $ids['site_id'], $ids['item_set_id']);
+    }
+
+    /**
+     * Get the viewer of a vikus block of the current site.
      *
      * The page is read via the api to check the rights of the user.
      */
-    protected function getBlock(): SitePageBlockRepresentation
+    protected function blockTarget(string $key, int $blockId): array
     {
-        $blockId = (int) $this->params('block-id');
         $block = $this->entityManager->find(SitePageBlock::class, $blockId);
         // The page is a lazy proxy and the visibility filter of doctrine hides
         // the private ones from a visitor, so loading it throws instead of
@@ -166,10 +192,50 @@ class PlayerController extends AbstractActionController
         }
         foreach ($page->blocks() as $pageBlock) {
             if ($pageBlock->id() === $blockId) {
-                return $pageBlock;
+                return [
+                    'key' => $key,
+                    'options' => $pageBlock->data() + $this->blockDefaults,
+                    'title' => $page->title(),
+                    'allowed' => $page->userIsAllowed('update'),
+                    'url' => $page->siteUrl(),
+                ];
             }
         }
 
         throw new NotFoundException;
+    }
+
+    /**
+     * Get the viewer of an item set attached to the current site.
+     */
+    protected function itemSetTarget(string $key, int $siteId, int $itemSetId): array
+    {
+        $site = $this->currentSite();
+        if (!$site || $site->id() !== $siteId) {
+            throw new NotFoundException;
+        }
+
+        try {
+            $itemSet = $this->api()->read('item_sets', $itemSetId)->getContent();
+        } catch (ApiException\ExceptionInterface) {
+            throw new NotFoundException;
+        }
+        $isInSite = $this->api()
+            ->search('item_sets', ['id' => $itemSetId, 'site_id' => $siteId, 'limit' => 0])
+            ->getTotalResults();
+        if (!$isInSite) {
+            throw new NotFoundException;
+        }
+
+        $options = OptionsNormalizer::fromSettings($this->siteSettings, $this->siteSettingsDefaults);
+        $options['query'] = ['item_set_id' => $itemSetId];
+
+        return [
+            'key' => $key,
+            'options' => $options,
+            'title' => (string) $itemSet->displayTitle(),
+            'allowed' => $itemSet->userIsAllowed('update'),
+            'url' => $itemSet->siteUrl($site->slug()),
+        ];
     }
 }

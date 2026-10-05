@@ -14,7 +14,9 @@ class PlayerControllerFactory implements FactoryInterface
             $services->get('Omeka\EntityManager'),
             $services->get('Vikus\CacheStorage'),
             $services->get('Vikus\ConfigBuilder'),
+            $services->get('Omeka\Settings\Site'),
             $services->get('Config')['vikus']['block_settings']['vikus'],
+            $services->get('Config')['vikus']['site_settings'],
             dirname(__DIR__, 3) . '/asset/vendor/vikus-viewer'
         );
     }

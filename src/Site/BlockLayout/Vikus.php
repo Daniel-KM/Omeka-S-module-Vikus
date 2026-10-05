@@ -11,6 +11,7 @@ use Omeka\Site\BlockLayout\AbstractBlockLayout;
 use Omeka\Site\BlockLayout\TemplateableBlockLayoutInterface;
 use Omeka\Stdlib\ErrorStore;
 use Vikus\Form\VikusFieldset;
+use Vikus\Stdlib\CacheStorage;
 use Vikus\Stdlib\OptionsNormalizer;
 
 class Vikus extends AbstractBlockLayout implements TemplateableBlockLayoutInterface
@@ -67,6 +68,9 @@ class Vikus extends AbstractBlockLayout implements TemplateableBlockLayoutInterf
     {
         return $view->partial($templateViewScript, [
             'block' => $block,
+            'site' => $block->page()->site(),
+            'key' => CacheStorage::blockKey($block->id()),
+            'height' => $block->dataValue('height', '80vh'),
         ]);
     }
 }
