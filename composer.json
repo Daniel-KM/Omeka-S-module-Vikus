@@ -1,0 +1,52 @@
+{
+    "name": "daniel-km/omeka-s-module-vikus",
+    "type": "omeka-s-module",
+    "description": "Module for Omeka S: Integrate Vikus viewer, a zoomable canvas to explore large image collections by time, map and keywords.",
+    "keywords": [
+        "Omeka S",
+        "Omeka S module",
+        "viewer",
+        "visualization",
+        "vikus"
+    ],
+    "license": "CECILL-2.1",
+    "homepage": "https://gitlab.com/Daniel-KM/Omeka-S-module-Vikus",
+    "authors": [
+        {
+            "name": "Daniel Berthereau",
+            "email": "Daniel.packagist@Berthereau.net"
+        }
+    ],
+    "support": {
+        "issues": "https://gitlab.com/Daniel-KM/Omeka-S-module-Vikus/-/work_items",
+        "forum": "https://forum.omeka.org/"
+    },
+    "_require (not set until Omeka S merges PR #2432)": {
+        "omeka/omeka-s": "^4.1",
+        "daniel-km/omeka-s-module-common": "*"
+    },
+    "require": {
+        "sempia/external-assets": "^1.2"
+    },
+    "autoload": {
+        "psr-4": {
+            "Vikus\\": "src/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "VikusTest\\": "tests/VikusTest/"
+        }
+    },
+    "config": {
+        "allow-plugins": {
+            "sempia/external-assets": true
+        }
+    },
+    "extra": {
+        "installer-name": "Vikus",
+        "external-assets": {
+            "asset/vendor/vikus-viewer/": "https://github.com/cpietsch/vikus-viewer/archive/ccb4e7e3d921521b01b2760b51bf4d1b090b844b.tar.gz"
+        }
+    }
+}
