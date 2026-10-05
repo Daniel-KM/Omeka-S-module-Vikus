@@ -56,6 +56,8 @@ class OptionsNormalizer
             $data['query'] = $query;
         }
 
+        $data['max_items'] = max(0, (int) ($data['max_items'] ?? 0));
+
         foreach (['property_keywords', 'properties_detail', 'properties_group'] as $key) {
             $data[$key] = array_values(array_filter((array) ($data[$key] ?? [])));
         }

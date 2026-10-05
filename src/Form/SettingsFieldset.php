@@ -23,8 +23,8 @@ class SettingsFieldset extends Fieldset
                 'type' => Element\Number::class,
                 'options' => [
                     'element_group' => 'vikus',
-                    'label' => 'Maximum number of items by visualization', // @translate
-                    'info' => 'This is a safety limit for the background job, not a target: the browser downloads about one atlas of thumbnails by 49 items, so a few thousand items by visualization is a reasonable maximum.', // @translate
+                    'label' => 'Hard limit of items by visualization', // @translate
+                    'info' => 'Safety limit of the background job, that the option of a block or of a site cannot exceed.', // @translate
                 ],
                 'attributes' => [
                     'id' => 'vikus_max_items',

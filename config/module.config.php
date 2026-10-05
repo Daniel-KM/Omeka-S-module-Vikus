@@ -99,6 +99,7 @@ return [
             'max_recommended' => 5000,
         ],
         'site_settings' => [
+            'vikus_max_items' => 0,
             'vikus_property_year' => 'dcterms:date',
             'vikus_property_year_annotation' => '',
             'vikus_year_precision' => 'year',
@@ -139,6 +140,7 @@ return [
         'block_settings' => [
             'vikus' => [
                 'query' => [],
+                'max_items' => 0,
                 'title' => '',
                 'info' => '',
                 'timeline_events' => [],

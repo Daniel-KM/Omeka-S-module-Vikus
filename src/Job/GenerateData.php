@@ -11,6 +11,16 @@ use Vikus\Stdlib\SpriteBuilder;
 
 class GenerateData extends AbstractJob
 {
+    /**
+     * Get the number of items to generate: the option of the viewer, capped by
+     * the main setting.
+     */
+    public static function maxItems(array $options, int $settingMax): int
+    {
+        $optionMax = (int) ($options['max_items'] ?? 0);
+        return $optionMax > 0 ? min($optionMax, $settingMax) : $settingMax;
+    }
+
     public function perform(): void
     {
         $services = $this->getServiceLocator();
@@ -28,7 +38,10 @@ class GenerateData extends AbstractJob
         [$options, $site, $meta] = $target;
 
         $hash = DataBuilder::hash($options);
-        $maxItems = (int) $services->get('Omeka\Settings')->get('vikus_max_items', 10000);
+        $maxItems = self::maxItems(
+            $options,
+            (int) $services->get('Omeka\Settings')->get('vikus_max_items', 10000)
+        );
 
         $storage = $services->get('Vikus\CacheStorage');
         $dir = $storage->prepareTemp($key);

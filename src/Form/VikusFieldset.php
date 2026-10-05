@@ -41,7 +41,7 @@ class VikusFieldset extends Fieldset
     const ELEMENT_GROUPS = [
         'vikus_items' => [
             'label' => 'Items', // @translate
-            'keys' => ['query', 'title', 'info'],
+            'keys' => ['query', 'max_items', 'title', 'info'],
         ],
         'vikus_alignment' => [
             'label' => 'Alignment', // @translate
@@ -134,6 +134,19 @@ class VikusFieldset extends Fieldset
                 ],
                 'attributes' => [
                     'id' => $id('query'),
+                ],
+            ],
+            'max_items' => [
+                'name' => $name('max_items'),
+                'type' => Element\Number::class,
+                'options' => [
+                    'label' => 'Maximum number of items', // @translate
+                    'info' => 'Leave empty to keep all the items of the query. The viewer stays smooth up to about 2000 items on laptops and phones.', // @translate
+                ],
+                'attributes' => [
+                    'id' => $id('max_items'),
+                    'min' => 1,
+                    'step' => 1,
                 ],
             ],
             'title' => [

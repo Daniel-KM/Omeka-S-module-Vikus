@@ -11,6 +11,7 @@ use Omeka\Site\BlockLayout\AbstractBlockLayout;
 use Omeka\Site\BlockLayout\TemplateableBlockLayoutInterface;
 use Omeka\Stdlib\ErrorStore;
 use Vikus\Form\VikusFieldset;
+use Vikus\Job\GenerateData;
 use Vikus\Stdlib\CacheStorage;
 use Vikus\Stdlib\OptionsNormalizer;
 
@@ -80,13 +81,21 @@ class Vikus extends AbstractBlockLayout implements TemplateableBlockLayoutInterf
         $fieldset = $services->get('FormElementManager')->get(VikusFieldset::class);
         $fieldset->populateValues($dataForm);
 
+        $maxItems = GenerateData::maxItems(
+            $data,
+            (int) $services->get('Omeka\\Settings')->get('vikus_max_items', 10000)
+        );
+        $queryLimit = (int) ($query['limit'] ?? 0);
+        if ($queryLimit > 0) {
+            $maxItems = min($queryLimit, $maxItems);
+        }
+
         return $view->partial('common/block-layout/admin/vikus-form', [
             'fieldset' => $fieldset,
             'query' => $query,
             'itemCount' => $itemCount,
-            'queryLimit' => (int) ($query['limit'] ?? 0),
+            'generatedCount' => $itemCount === null ? null : min($itemCount, $maxItems),
             'thresholds' => $config['thresholds'],
-            'maxItems' => (int) $services->get('Omeka\\Settings')->get('vikus_max_items', 10000),
         ]);
     }
 
