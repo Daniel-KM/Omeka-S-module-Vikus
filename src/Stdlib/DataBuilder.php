@@ -149,10 +149,22 @@ class DataBuilder
         return $media && $media->hasThumbnails() ? $media : null;
     }
 
+    /**
+     * Get the source of the thumbnail to pack in a sprite.
+     *
+     * The large derivative is preferred: the sprites are 256 px, but the
+     * medium one may be configured below that size, and an upscale is never
+     * done, so it would make the canvas blurry.
+     */
     protected function thumbnailSource(MediaRepresentation $media): string
     {
-        $path = $this->filesBasePath . '/medium/' . $media->storageId() . '.jpg';
-        return is_file($path) ? $path : (string) $media->thumbnailUrl('medium');
+        foreach (['large', 'medium'] as $type) {
+            $path = $this->filesBasePath . '/' . $type . '/' . $media->storageId() . '.jpg';
+            if (is_file($path)) {
+                return $path;
+            }
+        }
+        return (string) ($media->thumbnailUrl('large') ?: $media->thumbnailUrl('medium'));
     }
 
     protected function keywords(ItemRepresentation $item, array $terms): array
