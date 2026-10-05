@@ -13,6 +13,11 @@ return [
         'invokables' => [
             'Vikus\SpriteBuilder' => Stdlib\SpriteBuilder::class,
         ],
+        // The sprite builder keeps the state of the packing of the atlases, so
+        // a new one is required for each generation.
+        'shared' => [
+            'Vikus\SpriteBuilder' => false,
+        ],
     ],
     'controllers' => [
         'factories' => [

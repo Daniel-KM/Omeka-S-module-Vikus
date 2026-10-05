@@ -61,8 +61,9 @@ class CacheStorage
     public function publish(int $blockId, string $temp): void
     {
         $path = $this->path($blockId);
-        $old = $path . '.old';
-        $this->remove($old);
+        // The name of the previous cache is unique per call, so two concurrent
+        // publications of the same block never move it to the same place.
+        $old = $path . '.old-' . bin2hex(random_bytes(8));
         $hasPrevious = is_dir($path);
         if ($hasPrevious && !@rename($path, $old)) {
             throw new RuntimeException(sprintf('Unable to move directory "%s" to "%s".', $path, $old));
@@ -81,14 +82,26 @@ class CacheStorage
      *
      * The path is checked against the cache base path and the ".tmp-" marker
      * before removal, so a caller cannot be tricked (or mistaken) into removing
-     * an unrelated directory.
+     * an unrelated directory. It is checked once resolved too, so a traversal
+     * like ".../b1/../../foo.tmp-1" cannot escape the cache directory.
      */
     public function discardTemp(string $temp): void
     {
-        if (!str_starts_with($temp, $this->basePath . '/') || !preg_match('~\.tmp-[^/]+$~', $temp)) {
+        $resolved = realpath($temp);
+        $base = realpath($this->basePath);
+        if (!$this->isTempPath($temp, $this->basePath)
+            || ($resolved !== false && !$this->isTempPath($resolved, (string) $base))
+        ) {
             throw new RuntimeException(sprintf('Refusing to discard directory "%s": not a temporary cache directory.', $temp));
         }
         $this->remove($temp);
+    }
+
+    protected function isTempPath(string $path, string $base): bool
+    {
+        return $base !== ''
+            && str_starts_with($path, $base . '/')
+            && preg_match('~\.tmp-[^/]+$~', $path) === 1;
     }
 
     /**
@@ -99,8 +112,7 @@ class CacheStorage
     {
         $path = $this->path($blockId);
         $this->remove($path);
-        $this->remove($path . '.old');
-        foreach (glob($path . '.tmp-*', GLOB_ONLYDIR) ?: [] as $dir) {
+        foreach (glob($path . '.{old,tmp-}*', GLOB_ONLYDIR | GLOB_BRACE) ?: [] as $dir) {
             $this->remove($dir);
         }
     }
