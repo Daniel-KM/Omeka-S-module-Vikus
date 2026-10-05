@@ -15,6 +15,11 @@ class DataBuilder
     const BATCH = 100;
 
     /**
+     * Minimal count of points required to clamp the isolated ones.
+     */
+    const MAP_OUTLIERS_MIN = 50;
+
+    /**
      * Options that require to rebuild the cache when they are updated.
      */
     const DATA_OPTIONS = [
@@ -31,6 +36,7 @@ class DataBuilder
         'sprite_size',
         'link_to_item',
         'layout_map',
+        'map_outliers',
         'info',
     ];
 
@@ -113,6 +119,49 @@ class DataBuilder
             return $year;
         }
         return (string) ((int) floor((int) $year / $step) * $step);
+    }
+
+    /**
+     * Clamp the coordinates of the points to their dense area.
+     *
+     * The viewer rescales the columns "x" and "y" of a csv layout on the
+     * extent of the data, so a handful of distant points shrink the area
+     * where most of the collection lies to a few pixels. The coordinates are
+     * clamped to the range of the second and of the ninety-eighth percentiles
+     * of each axis: the isolated points are pinned to the border of the dense
+     * area instead of stretching it. A small collection is kept as is, where
+     * a distant point is a part of the subject and not an outlier.
+     *
+     * @param array $points Pairs [x, y] by item id.
+     * @return array The same pairs, in the same order.
+     */
+    public static function clampOutliers(array $points): array
+    {
+        if (count($points) < self::MAP_OUTLIERS_MIN) {
+            return $points;
+        }
+        [$minX, $maxX] = self::percentiles(array_column($points, 0));
+        [$minY, $maxY] = self::percentiles(array_column($points, 1));
+        foreach ($points as $id => $point) {
+            $points[$id] = [
+                min($maxX, max($minX, $point[0])),
+                min($maxY, max($minY, $point[1])),
+            ];
+        }
+        return $points;
+    }
+
+    /**
+     * Get the second and the ninety-eighth percentiles of a list of values.
+     */
+    protected static function percentiles(array $values): array
+    {
+        sort($values);
+        $last = count($values) - 1;
+        return [
+            $values[(int) round($last * 0.02)],
+            $values[(int) round($last * 0.98)],
+        ];
     }
 
     public static function column(string $term): string
@@ -326,6 +375,9 @@ class DataBuilder
         }
         if (!$points) {
             return;
+        }
+        if (!empty($options['map_outliers'])) {
+            $points = self::clampOutliers($points);
         }
 
         $handle = fopen($dir . '/map.csv', 'w');

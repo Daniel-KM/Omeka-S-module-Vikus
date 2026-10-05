@@ -65,6 +65,7 @@ class OptionsNormalizer
         }
         $data['link_to_item'] = !empty($data['link_to_item']);
         $data['layout_map'] = !empty($data['layout_map']);
+        $data['map_outliers'] = !empty($data['map_outliers']);
         $data['columns'] = max(1, min(50, (int) ($data['columns'] ?? 6)));
         $data['height'] = preg_match('~^\d+(\.\d+)?(px|vh|em|rem|%)$~', trim((string) ($data['height'] ?? '')))
             ? trim((string) $data['height'])

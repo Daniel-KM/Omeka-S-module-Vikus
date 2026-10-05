@@ -241,6 +241,17 @@ class VikusFieldset extends Fieldset
                     'id' => $id('layout_map'),
                 ],
             ],
+            'map_outliers' => [
+                'name' => $name('map_outliers'),
+                'type' => Element\Checkbox::class,
+                'options' => [
+                    'label' => 'Group the isolated points of the map', // @translate
+                    'info' => 'The map fills the canvas, so a few distant points reduce the area where most of the items are to a few pixels. When checked, the isolated points are moved to the border of that area.', // @translate
+                ],
+                'attributes' => [
+                    'id' => $id('map_outliers'),
+                ],
+            ],
             'image_source' => [
                 'name' => $name('image_source'),
                 'type' => Element\Select::class,
