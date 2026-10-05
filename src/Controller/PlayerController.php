@@ -54,6 +54,19 @@ class PlayerController extends AbstractActionController
     public function playAction()
     {
         $target = $this->getTarget();
+
+        // The viewer reads the url of its config in the query string and
+        // falls back on a relative "data/config.json" without it, so a direct
+        // access to the page is redirected to the complete url.
+        if (!$this->params()->fromQuery('config')) {
+            $params = ['key' => $target['key'], 'action' => 'config'];
+            $configUrl = $this->viewHelpers()->get('serverUrl')
+                ->__invoke($this->url()->fromRoute('site/vikus', $params, [], true));
+            return $this->redirect()->toRoute('site/vikus', ['key' => $target['key'], 'action' => 'play'], [
+                'query' => ['config' => $configUrl],
+            ], true);
+        }
+
         $html = @file_get_contents($this->viewerPath . '/index.html');
         if ($html === false) {
             throw new NotFoundException;
