@@ -15,7 +15,6 @@ use RuntimeException;
 use Vikus\Job\GenerateData;
 use Vikus\Stdlib\CacheStorage;
 use Vikus\Stdlib\ConfigBuilder;
-use Vikus\Stdlib\SpriteBuilder;
 use Vikus\Stdlib\OptionsNormalizer;
 
 class PlayerController extends AbstractActionController
@@ -151,8 +150,7 @@ class PlayerController extends AbstractActionController
             $target['options'],
             $target['title'],
             $this->cacheStorage->url($target['key']),
-            !empty($meta['map']),
-            (int) ($meta['sprite_size'] ?? SpriteBuilder::SIZE)
+            $meta
         ));
     }
 

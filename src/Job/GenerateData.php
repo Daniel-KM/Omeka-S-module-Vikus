@@ -34,7 +34,9 @@ class GenerateData extends AbstractJob
         $dir = $storage->prepareTemp($key);
         $shouldStop = fn (): bool => $this->shouldStop();
         try {
-            $sources = $services->get('Vikus\DataBuilder')->build($options, $site, $dir, $maxItems, $shouldStop);
+            $dataBuilder = $services->get('Vikus\DataBuilder');
+            $sources = $dataBuilder->build($options, $site, $dir, $maxItems, $shouldStop);
+            $stats = $dataBuilder->stats();
             if ($this->shouldStop()) {
                 $storage->discardTemp($dir);
                 $logger->notice(
@@ -66,6 +68,10 @@ class GenerateData extends AbstractJob
                 'sprite_size' => $spriteSize,
                 'hash' => $hash,
                 'total' => count($sources),
+                // The config sizes the group layouts on these counts, so that
+                // their images stay as readable as the ones of the time one.
+                'years' => $stats['years'],
+                'groups' => $stats['groups'],
                 'generated' => (new \DateTimeImmutable())->format(DATE_ATOM),
             ];
             if (@file_put_contents($dir . '/meta.json', json_encode($meta)) === false) {

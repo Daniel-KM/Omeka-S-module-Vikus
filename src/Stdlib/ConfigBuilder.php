@@ -23,13 +23,13 @@ class ConfigBuilder
      * The titles of the group layouts are read live from the options: they
      * are a presentation only and do not require to rebuild the cache.
      *
-     * @param bool $hasMap Whether the cache contains a map.csv, that is only
-     * built when the module Mapping is active and an item has a point.
-     * @param int $spriteSize Size of the sprites of the published atlases,
-     * read in the meta data of the cache and not in the options: a changed
-     * option must not declare a size that the atlases do not have.
+     * @param array $meta The meta data of the cache: "map" (whether it
+     * contains a map.csv, only built when the module Mapping is active and an
+     * item has a point), "sprite_size" (size of the sprites of the published
+     * atlases, that may differ from the option when it changed since the last
+     * generation) and the counts "years" and "groups" of DataBuilder.
      */
-    public function build(array $options, string $title, string $cacheUrl, bool $hasMap = false, int $spriteSize = SpriteBuilder::SIZE): array
+    public function build(array $options, string $title, string $cacheUrl, array $meta = []): array
     {
         $style = [];
         foreach ($options as $key => $value) {
@@ -40,6 +40,8 @@ class ConfigBuilder
         $style['textShadow'] = '1px 1px 0px ' . ($style['canvasBackground'] ?? '#ffffff');
 
         $columns = (int) ($options['columns'] ?? 6) ?: 6;
+        $years = (int) ($meta['years'] ?? 0);
+        $groupCounts = (array) ($meta['groups'] ?? []);
 
         // The first layout is the default one and the viewer hides the
         // navigation when there is only one.
@@ -51,13 +53,13 @@ class ConfigBuilder
                 'title' => $this->uniqueTitle($layoutTitles[$term] ?? $this->label($term), $titles, $term),
                 'type' => 'group',
                 'groupKey' => DataBuilder::columnGroup($term),
-                'columns' => $columns,
+                'columns' => $this->groupColumns($columns, $years, (int) ($groupCounts[$term] ?? 0)),
             ];
         }
 
         // The map uses the csv mechanism of the similarity layouts of the
         // viewer, that rescales the columns "x" and "y" on their extent.
-        if (!empty($options['layout_map']) && $hasMap) {
+        if (!empty($options['layout_map']) && !empty($meta['map'])) {
             $mapTitle = $this->translator->translate('Map'); // @translate
             $layouts[] = [
                 'title' => $this->uniqueTitle($mapTitle, $titles, 'map.csv'),
@@ -95,7 +97,7 @@ class ConfigBuilder
                 'timeline' => $cacheUrl . '/timeline.csv',
                 'layouts' => $layouts,
                 'textures' => [
-                    'medium' => ['size' => $spriteSize ?: SpriteBuilder::SIZE, 'url' => $cacheUrl . '/sprites/sprites.json'],
+                    'medium' => ['size' => (int) ($meta['sprite_size'] ?? 0) ?: SpriteBuilder::SIZE, 'url' => $cacheUrl . '/sprites/sprites.json'],
                     'detail' => ['size' => 1024, 'csv' => '_detail'],
                     'big' => ['size' => 4096, 'csv' => '_big'],
                 ],
@@ -115,6 +117,25 @@ class ConfigBuilder
         }
 
         return $config;
+    }
+
+    /**
+     * Get the width of a group layout, so that its images stay readable.
+     *
+     * The viewer nests the items of a key in a fixed number of columns, so a
+     * property with many values spreads the canvas over hundreds of columns
+     * and its images are a few pixels wide. The total width of the layout is
+     * aligned on the one of the time layout, that the option describes: the
+     * columns of a group are the columns of a year multiplied by the ratio of
+     * the count of the years to the count of the values. The option is kept
+     * when a count is missing, for instance with a cache generated before
+     * they were recorded.
+     */
+    protected function groupColumns(int $columns, int $years, int $groups): int
+    {
+        return $years > 0 && $groups > 0
+            ? max(1, (int) round($columns * $years / $groups))
+            : $columns;
     }
 
     /**

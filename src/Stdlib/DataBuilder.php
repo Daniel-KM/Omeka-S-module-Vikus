@@ -47,6 +47,11 @@ class DataBuilder
     protected bool $hasMapping;
 
     /**
+     * Counts of the distinct keys of the layouts of the last build.
+     */
+    protected array $stats = ['years' => 0, 'groups' => []];
+
+    /**
      * @var callable|null
      */
     protected $digitalObjectInline;
@@ -132,6 +137,21 @@ class DataBuilder
     }
 
     /**
+     * Counts of the distinct keys of the layouts of the last build.
+     *
+     * The key "years" is the number of distinct non-empty years, that is the
+     * number of columns of the time layout, and the key "groups" the number
+     * of distinct values by property of the group layouts. They allow the
+     * config to give a group layout a width comparable to the time one.
+     *
+     * @return array Keys "years" (int) and "groups" (int by term).
+     */
+    public function stats(): array
+    {
+        return $this->stats;
+    }
+
+    /**
      * Write data.csv in a directory and list the thumbnails to pack.
      *
      * @return array Sources (path or url) of medium thumbnails by item id.
@@ -157,6 +177,10 @@ class DataBuilder
         // and places an item with an unknown key outside of the canvas, so the
         // items without value are grouped under a label.
         $unknown = $this->translator->translate('Unknown'); // @translate
+
+        $this->stats = ['years' => 0, 'groups' => []];
+        $years = [];
+        $groups = array_fill_keys($termsGroup, []);
 
         $headers = array_merge(
             ['id', 'keywords', 'year'],
@@ -202,10 +226,14 @@ class DataBuilder
                     continue;
                 }
                 $urls = $this->imageUrl->urls($image, $imageSource);
+                $year = $this->year($item, $options);
+                if ($year !== '') {
+                    $years[$year] = true;
+                }
                 $row = [
                     $item->id(),
                     implode(',', $this->keywords($item, $termsKeywords)),
-                    $this->year($item, $options),
+                    $year,
                 ];
                 foreach ($termsDetail as $term) {
                     $row[] = implode(' ; ', array_map([$this, 'label'], $item->value($term, ['all' => true])));
@@ -214,7 +242,9 @@ class DataBuilder
                     $row[] = $this->firstLabel($item, $term);
                 }
                 foreach ($termsGroup as $term) {
-                    $row[] = $this->firstLabel($item, $term) ?: $unknown;
+                    $group = $this->firstLabel($item, $term) ?: $unknown;
+                    $groups[$term][$group] = true;
+                    $row[] = $group;
                 }
                 if ($linkToItem) {
                     $row[] = $item->siteUrl($site->slug(), true);
@@ -235,6 +265,11 @@ class DataBuilder
         }
 
         fclose($handle);
+
+        $this->stats = [
+            'years' => count($years),
+            'groups' => array_map('count', $groups),
+        ];
 
         $this->buildMap($options, array_keys($sources), $dir, $shouldStop);
 
