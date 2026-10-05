@@ -39,11 +39,17 @@ class SpriteBuilder
     /**
      * @param array $sources Paths or urls of thumbnails by item id.
      * @return array Ids of the items whose thumbnail is not readable.
+     *
+     * The target directory `$dir/sprites` must not exist yet: the job always
+     * builds in a fresh temporary directory, so an existing one makes this
+     * method throw instead of overwriting or merging it.
      */
     public function build(array $sources, string $dir): array
     {
         $this->dir = $dir . '/sprites';
-        mkdir($this->dir, 0775, true);
+        if (!@mkdir($this->dir, 0775, true)) {
+            throw new \RuntimeException(sprintf('Unable to create directory "%s".', $this->dir));
+        }
         $this->spritesheets = [];
         $this->openAtlas();
 
@@ -54,7 +60,13 @@ class SpriteBuilder
                 $failed[] = $id;
                 continue;
             }
-            [$width, $height] = $this->fit(...$this->dimensions($image));
+            [$sourceWidth, $sourceHeight] = $this->dimensions($image);
+            if ($sourceWidth <= 0 || $sourceHeight <= 0) {
+                $this->useImagick ? $image->clear() : imagedestroy($image);
+                $failed[] = $id;
+                continue;
+            }
+            [$width, $height] = $this->fit($sourceWidth, $sourceHeight);
             if ($this->x + $width > self::ATLAS) {
                 $this->x = 0;
                 $this->y += $this->shelfHeight + self::GUTTER;
@@ -75,11 +87,15 @@ class SpriteBuilder
         }
         $this->closeAtlas();
 
-        file_put_contents($this->dir . '/sprites.json', json_encode([
+        $manifest = $this->dir . '/sprites.json';
+        $written = @file_put_contents($manifest, json_encode([
             'meta' => ['type' => 'pixi-packer', 'version' => '1'],
             'resolution' => 1,
             'spritesheets' => $this->spritesheets,
         ], JSON_UNESCAPED_SLASHES));
+        if ($written === false) {
+            throw new \RuntimeException(sprintf('Unable to write file "%s".', $manifest));
+        }
 
         return $failed;
     }
@@ -109,11 +125,16 @@ class SpriteBuilder
     {
         if ($this->sprites) {
             $name = count($this->spritesheets) . '.jpg';
+            $path = $this->dir . '/' . $name;
             if ($this->useImagick) {
                 $this->atlas->setImageCompressionQuality(self::QUALITY);
-                $this->atlas->writeImage($this->dir . '/' . $name);
-            } else {
-                imagejpeg($this->atlas, $this->dir . '/' . $name, self::QUALITY);
+                try {
+                    $this->atlas->writeImage($path);
+                } catch (\ImagickException $e) {
+                    throw new \RuntimeException(sprintf('Unable to write file "%s".', $path), 0, $e);
+                }
+            } elseif (!@imagejpeg($this->atlas, $path, self::QUALITY)) {
+                throw new \RuntimeException(sprintf('Unable to write file "%s".', $path));
             }
             $this->spritesheets[] = ['image' => $name, 'sprites' => $this->sprites];
         }
