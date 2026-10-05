@@ -57,6 +57,7 @@ class ConfigBuilder
             'loader' => [
                 'info' => $cacheUrl . '/info.md',
                 'items' => $cacheUrl . '/data.csv',
+                'timeline' => $cacheUrl . '/timeline.csv',
                 'layouts' => [
                     ['title' => 'Time'],
                 ],

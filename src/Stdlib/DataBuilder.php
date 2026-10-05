@@ -89,6 +89,13 @@ class DataBuilder
         $handle = fopen($dir . '/data.csv', 'w');
         fputcsv($handle, $headers, ',', '"', '\\');
 
+        // The viewer always loads the timeline file, so it is written even
+        // when it has no row: a missing url makes it request "<base>/undefined"
+        // and log a loading error in the console.
+        $timeline = fopen($dir . '/timeline.csv', 'w');
+        fputcsv($timeline, ['year', 'title', 'description'], ',', '"', '\\');
+        fclose($timeline);
+
         $query = ['site_id' => $site->id(), 'has_media' => 1] + (array) ($options['query'] ?? []);
         $query['sort_by'] = 'id';
         $query['sort_order'] = 'asc';
