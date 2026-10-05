@@ -20,6 +20,8 @@ class OptionsNormalizer
 
     const FILTER_TYPES = ['tags', 'hierarchical', 'crossfilter'];
 
+    const SPRITE_SIZES = [256, 128];
+
     const YEAR_PRECISIONS = ['year', 'decade', 'century'];
 
     /**
@@ -67,6 +69,9 @@ class OptionsNormalizer
         $data['height'] = preg_match('~^\d+(\.\d+)?(px|vh|em|rem|%)$~', trim((string) ($data['height'] ?? '')))
             ? trim((string) $data['height'])
             : '80vh';
+        $data['sprite_size'] = in_array((int) ($data['sprite_size'] ?? 0), self::SPRITE_SIZES, true)
+            ? (int) $data['sprite_size']
+            : 256;
         $data['image_source'] = in_array($data['image_source'] ?? null, self::IMAGE_SOURCES, true)
             ? $data['image_source']
             : 'auto';

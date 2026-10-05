@@ -7,6 +7,7 @@ use Omeka\Job\AbstractJob;
 use Vikus\Stdlib\CacheStorage;
 use Vikus\Stdlib\DataBuilder;
 use Vikus\Stdlib\OptionsNormalizer;
+use Vikus\Stdlib\SpriteBuilder;
 
 class GenerateData extends AbstractJob
 {
@@ -42,7 +43,8 @@ class GenerateData extends AbstractJob
                 );
                 return;
             }
-            $failed = $services->get('Vikus\SpriteBuilder')->build($sources, $dir, $shouldStop);
+            $spriteSize = (int) ($options['sprite_size'] ?? SpriteBuilder::SIZE) ?: SpriteBuilder::SIZE;
+            $failed = $services->get('Vikus\SpriteBuilder')->build($sources, $dir, $shouldStop, $spriteSize);
             if ($this->shouldStop()) {
                 $storage->discardTemp($dir);
                 $logger->notice(
@@ -59,6 +61,9 @@ class GenerateData extends AbstractJob
                 // The layout of the map is only added to the config when the
                 // file exists, so that the viewer never loads a missing url.
                 'map' => is_file($dir . '/map.csv'),
+                // The config of the viewer declares the size of the sprites of
+                // the published atlases, not the one of the current options.
+                'sprite_size' => $spriteSize,
                 'hash' => $hash,
                 'total' => count($sources),
                 'generated' => (new \DateTimeImmutable())->format(DATE_ATOM),

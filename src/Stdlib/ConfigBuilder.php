@@ -25,8 +25,11 @@ class ConfigBuilder
      *
      * @param bool $hasMap Whether the cache contains a map.csv, that is only
      * built when the module Mapping is active and an item has a point.
+     * @param int $spriteSize Size of the sprites of the published atlases,
+     * read in the meta data of the cache and not in the options: a changed
+     * option must not declare a size that the atlases do not have.
      */
-    public function build(array $options, string $title, string $cacheUrl, bool $hasMap = false): array
+    public function build(array $options, string $title, string $cacheUrl, bool $hasMap = false, int $spriteSize = SpriteBuilder::SIZE): array
     {
         $style = [];
         foreach ($options as $key => $value) {
@@ -92,7 +95,7 @@ class ConfigBuilder
                 'timeline' => $cacheUrl . '/timeline.csv',
                 'layouts' => $layouts,
                 'textures' => [
-                    'medium' => ['size' => 256, 'url' => $cacheUrl . '/sprites/sprites.json'],
+                    'medium' => ['size' => $spriteSize ?: SpriteBuilder::SIZE, 'url' => $cacheUrl . '/sprites/sprites.json'],
                     'detail' => ['size' => 1024, 'csv' => '_detail'],
                     'big' => ['size' => 4096, 'csv' => '_big'],
                 ],

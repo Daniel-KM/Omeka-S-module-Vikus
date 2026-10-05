@@ -16,6 +16,8 @@ class SpriteBuilder
 
     protected string $dir;
 
+    protected int $size = self::SIZE;
+
     /**
      * @var \Imagick|\GdImage|null
      */
@@ -38,14 +40,16 @@ class SpriteBuilder
 
     /**
      * @param array $sources Paths or urls of thumbnails by item id.
+     * @param int $size Maximum width and height of a sprite in the atlases.
      * @return array Ids of the items whose thumbnail is not readable.
      *
      * The target directory `$dir/sprites` must not exist yet: the job always
      * builds in a fresh temporary directory, so an existing one makes this
      * method throw instead of overwriting or merging it.
      */
-    public function build(array $sources, string $dir, ?callable $shouldStop = null): array
+    public function build(array $sources, string $dir, ?callable $shouldStop = null, int $size = self::SIZE): array
     {
+        $this->size = $size > 0 ? min($size, self::ATLAS) : self::SIZE;
         $this->dir = $dir . '/sprites';
         if (!@mkdir($this->dir, 0775, true)) {
             throw new \RuntimeException(sprintf('Unable to create directory "%s".', $this->dir));
@@ -110,7 +114,7 @@ class SpriteBuilder
      */
     protected function fit(int $width, int $height): array
     {
-        $ratio = min(1, self::SIZE / $width, self::SIZE / $height);
+        $ratio = min(1, $this->size / $width, $this->size / $height);
         return [max(1, (int) round($width * $ratio)), max(1, (int) round($height * $ratio))];
     }
 

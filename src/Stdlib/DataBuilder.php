@@ -28,6 +28,7 @@ class DataBuilder
         'filter_type',
         'properties_group',
         'image_source',
+        'sprite_size',
         'link_to_item',
         'layout_map',
         'info',

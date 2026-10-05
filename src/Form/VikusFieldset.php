@@ -256,6 +256,21 @@ class VikusFieldset extends Fieldset
                     'id' => $id('image_source'),
                 ],
             ],
+            'sprite_size' => [
+                'name' => $name('sprite_size'),
+                'type' => Element\Radio::class,
+                'options' => [
+                    'label' => 'Size of the sprites (px)', // @translate
+                    'info' => 'The thumbnails are packed in atlases of 2048 px. A smaller size divides the number of atlases by four, so the memory of the graphic card too, but the images are blurry when the visitor zooms in.', // @translate
+                    'value_options' => [
+                        256 => '256',
+                        128 => '128',
+                    ],
+                ],
+                'attributes' => [
+                    'id' => $id('sprite_size'),
+                ],
+            ],
             'link_to_item' => [
                 'name' => $name('link_to_item'),
                 'type' => Element\Checkbox::class,
