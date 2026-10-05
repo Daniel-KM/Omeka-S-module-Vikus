@@ -30,6 +30,20 @@ class ConfigBuilder
         }
         $style['textShadow'] = '1px 1px 0px ' . ($style['canvasBackground'] ?? '#ffffff');
 
+        $columns = (int) ($options['columns'] ?? 6) ?: 6;
+
+        // The first layout is the default one and the viewer hides the
+        // navigation when there is only one.
+        $layouts = [['title' => 'Time']];
+        foreach ((array) ($options['properties_group'] ?? []) as $term) {
+            $layouts[] = [
+                'title' => $this->label($term),
+                'type' => 'group',
+                'groupKey' => DataBuilder::columnGroup($term),
+                'columns' => $columns,
+            ];
+        }
+
         $structure = [];
         foreach ((array) ($options['properties_detail'] ?? []) as $term) {
             $structure[] = [
@@ -57,9 +71,7 @@ class ConfigBuilder
                 'info' => $cacheUrl . '/info.md',
                 'items' => $cacheUrl . '/data.csv',
                 'timeline' => $cacheUrl . '/timeline.csv',
-                'layouts' => [
-                    ['title' => 'Time'],
-                ],
+                'layouts' => $layouts,
                 'textures' => [
                     'medium' => ['size' => 256, 'url' => $cacheUrl . '/sprites/sprites.json'],
                     'detail' => ['size' => 1024, 'csv' => '_detail'],
@@ -68,7 +80,7 @@ class ConfigBuilder
             ],
             'style' => $style,
             'projection' => [
-                'columns' => (int) ($options['columns'] ?? 6) ?: 6,
+                'columns' => $columns,
             ],
             'detail' => [
                 'structure' => $structure,

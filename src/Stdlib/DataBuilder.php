@@ -23,6 +23,7 @@ class DataBuilder
         'properties_detail',
         'timeline_events',
         'filter_type',
+        'properties_group',
         'image_source',
         'link_to_item',
         'info',
@@ -109,11 +110,13 @@ class DataBuilder
         $termsFilter = ($options['filter_type'] ?? 'tags') === 'crossfilter'
             ? $termsKeywords
             : [];
+        $termsGroup = (array) ($options['properties_group'] ?? []);
 
         $headers = array_merge(
             ['id', 'keywords', 'year'],
             array_map([self::class, 'column'], $termsDetail),
             array_map([self::class, 'columnFilter'], $termsFilter),
+            array_map([self::class, 'columnGroup'], $termsGroup),
             $linkToItem ? ['_url'] : [],
             ['_detail', '_big']
         );
@@ -155,7 +158,7 @@ class DataBuilder
                 foreach ($termsDetail as $term) {
                     $row[] = implode(' ; ', array_map([$this, 'label'], $item->value($term, ['all' => true])));
                 }
-                foreach ($termsFilter as $term) {
+                foreach (array_merge($termsFilter, $termsGroup) as $term) {
                     $row[] = $this->firstLabel($item, $term);
                 }
                 if ($linkToItem) {

@@ -168,6 +168,21 @@ class VikusFieldset extends Fieldset
                     'data-placeholder' => 'Select properties…', // @translate
                 ],
             ],
+            'properties_group' => [
+                'name' => $name('properties_group'),
+                'type' => OmekaElement\PropertySelect::class,
+                'options' => [
+                    'label' => 'Properties for the group layouts', // @translate
+                    'info' => 'A layout is added to the navigation for each property: the items are grouped by their first value.', // @translate
+                    'term_as_value' => true,
+                ],
+                'attributes' => [
+                    'id' => $id('properties_group'),
+                    'class' => 'chosen-select',
+                    'multiple' => true,
+                    'data-placeholder' => 'Select properties…', // @translate
+                ],
+            ],
             'image_source' => [
                 'name' => $name('image_source'),
                 'type' => Element\Select::class,

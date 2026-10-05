@@ -47,7 +47,7 @@ class OptionsNormalizer
             $data['query'] = $query;
         }
 
-        foreach (['property_keywords', 'properties_detail'] as $key) {
+        foreach (['property_keywords', 'properties_detail', 'properties_group'] as $key) {
             $data[$key] = array_values(array_filter((array) ($data[$key] ?? [])));
         }
         if (array_key_exists('timeline_events', $data)) {
