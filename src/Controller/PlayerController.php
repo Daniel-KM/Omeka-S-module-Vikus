@@ -107,8 +107,13 @@ class PlayerController extends AbstractActionController
         // missing, so the page is returned as-is instead of breaking: the
         // script and the button are only improvements, not required parts of
         // the page.
+        // The hint of the script is translated here: the viewer has no
+        // translation mechanism of its own.
+        $translate = $this->viewHelpers()->get('translate');
+        $hint = $translate('Scroll or pinch to zoom, click an image to open its record.'); // @translate
         $script = '<script src="'
-            . htmlspecialchars($assetUrl('js/viewer.js', 'Vikus'), ENT_QUOTES) . '"></script>';
+            . htmlspecialchars($assetUrl('js/viewer.js', 'Vikus'), ENT_QUOTES)
+            . '" data-vikus-hint="' . htmlspecialchars($hint, ENT_QUOTES) . '"></script>';
         if ($target['allowed']) {
             $script .= $this->regenerateForm();
         }

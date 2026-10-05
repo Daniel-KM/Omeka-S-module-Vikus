@@ -89,8 +89,7 @@ class OptionsNormalizer
     }
 
     /**
-     * Normalize the titles of the group layouts, stored as a string by the
-     * form.
+     * Normalize the titles of the group layouts, set as a string by the form.
      *
      * Each line is a pair "term = Title", so the value is an array of titles
      * by term. A line without title is skipped: it would hide the label of

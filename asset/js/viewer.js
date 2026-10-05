@@ -38,3 +38,67 @@
         panel.classList.remove('sneak');
     }).observe(panel, {attributes: true, attributeFilter: ['class']});
 })();
+
+/**
+ * Show a discreet hint inviting the visitor to zoom, once by session.
+ *
+ * A collection spread over centuries is displayed as one narrow column by
+ * year, so the images are a few pixels wide until the visitor zooms, and
+ * nothing in the viewer says that the canvas can be zoomed. The hint is
+ * removed at the first interaction with the canvas or after a few seconds.
+ * Only an interaction marks it as seen for the session: a slow load would
+ * else consume it before it was visible. The session storage may throw
+ * (private window, blocked site data), so the hint is simply displayed again
+ * in that case.
+ */
+(function () {
+    'use strict';
+
+    var KEY = 'vikusZoomHint';
+    var DELAY = 8000;
+    var EVENTS = ['wheel', 'touchstart', 'mousedown', 'keydown'];
+
+    var script = document.querySelector('script[data-vikus-hint]');
+    var text = script ? script.getAttribute('data-vikus-hint') : '';
+    var page = document.querySelector('.page');
+    if (!text || !page) {
+        return;
+    }
+    try {
+        if (window.sessionStorage.getItem(KEY)) {
+            return;
+        }
+    } catch (e) {
+    }
+
+    var hint = document.createElement('div');
+    hint.className = 'vikus-hint';
+    hint.textContent = text;
+    page.appendChild(hint);
+
+    var timer = window.setTimeout(hide, DELAY);
+
+    function hide() {
+        window.clearTimeout(timer);
+        if (hint.parentNode) {
+            hint.parentNode.removeChild(hint);
+        }
+        for (var i = 0; i < EVENTS.length; i++) {
+            document.removeEventListener(EVENTS[i], dismiss, true);
+        }
+    }
+
+    function dismiss() {
+        hide();
+        try {
+            window.sessionStorage.setItem(KEY, '1');
+        } catch (e) {
+        }
+    }
+
+    // The capture phase is used so that the hint disappears even when the
+    // viewer stops the propagation of the event on the canvas.
+    for (var i = 0; i < EVENTS.length; i++) {
+        document.addEventListener(EVENTS[i], dismiss, true);
+    }
+})();

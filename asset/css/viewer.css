@@ -13,3 +13,27 @@
     line-height: 15px;
     overflow-wrap: anywhere;
 }
+
+/*
+ * The hint inviting the visitor to zoom, at the bottom of the canvas.
+ *
+ * The colors are those of the buttons of the navigation of the viewer, that
+ * are not themed by the config, so the hint is neutral on any background.
+ */
+
+.vikus-hint {
+    position: absolute;
+    z-index: 300;
+    bottom: 56px;
+    left: 50%;
+    transform: translateX(-50%);
+    max-width: 90%;
+    padding: 6px 12px;
+    border-radius: 3px;
+    background: rgba(53, 54, 54, 0.65);
+    color: rgba(255, 255, 255, 0.75);
+    font-size: 12px;
+    line-height: 15px;
+    text-align: center;
+    pointer-events: none;
+}
