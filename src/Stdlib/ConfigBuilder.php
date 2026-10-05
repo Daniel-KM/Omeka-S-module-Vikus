@@ -32,8 +32,9 @@ class ConfigBuilder
 
         $structure = [];
         foreach ((array) ($options['properties_detail'] ?? []) as $term) {
+            $label = $this->easyMeta->propertyLabel($term);
             $structure[] = [
-                'name' => $this->translator->translate((string) $this->easyMeta->propertyLabel($term)),
+                'name' => $label ? $this->translator->translate($label) : $term,
                 'source' => DataBuilder::column($term),
                 'display' => 'column',
                 'type' => 'text',
