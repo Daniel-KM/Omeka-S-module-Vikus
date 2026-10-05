@@ -127,7 +127,8 @@ class PlayerController extends AbstractActionController
             ? strtr($html, [$viz => $script . $viz])
             : strtr($html, ['</body>' => $script . '</body>']);
         $end = $this->mapScript($target, $assetUrl);
-        if ($target['allowed']) {
+        // A block has the checkbox of its form; an item set has no form.
+        if ($target['allowed'] && $target['item_set']) {
             $end .= $this->regenerateForm();
         }
         $html = strtr($html, ['</body>' => $end . '</body>']);
@@ -227,7 +228,8 @@ class PlayerController extends AbstractActionController
      * Get the viewer of the route: a block of a page or an item set of a site.
      *
      * @return array Keys "key", "options", "title", "allowed" (right to
-     * regenerate) and "url" (page to return to after a regeneration).
+     * regenerate), "url" (page to return to after a regeneration) and
+     * "item_set" (the viewer is the one of an item set, not of a block).
      */
     protected function getTarget(): array
     {
@@ -276,6 +278,7 @@ class PlayerController extends AbstractActionController
                     'title' => $page->title(),
                     'allowed' => $page->userIsAllowed('update'),
                     'url' => $page->siteUrl(),
+                    'item_set' => false,
                 ];
             }
         }
@@ -314,6 +317,7 @@ class PlayerController extends AbstractActionController
             'title' => (string) $itemSet->displayTitle(),
             'allowed' => $itemSet->userIsAllowed('update'),
             'url' => $itemSet->siteUrl($site->slug()),
+            'item_set' => true,
         ];
     }
 }
