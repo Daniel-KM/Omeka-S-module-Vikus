@@ -44,7 +44,7 @@ class SpriteBuilder
      * builds in a fresh temporary directory, so an existing one makes this
      * method throw instead of overwriting or merging it.
      */
-    public function build(array $sources, string $dir): array
+    public function build(array $sources, string $dir, ?callable $shouldStop = null): array
     {
         $this->dir = $dir . '/sprites';
         if (!@mkdir($this->dir, 0775, true)) {
@@ -54,7 +54,12 @@ class SpriteBuilder
         $this->openAtlas();
 
         $failed = [];
+        $count = 0;
         foreach ($sources as $id => $source) {
+            if ($shouldStop && $count % 100 === 0 && $shouldStop()) {
+                break;
+            }
+            $count++;
             $image = $this->load($source);
             if (!$image) {
                 $failed[] = $id;

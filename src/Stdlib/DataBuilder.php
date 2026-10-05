@@ -66,8 +66,13 @@ class DataBuilder
      *
      * @return array Sources (path or url) of medium thumbnails by item id.
      */
-    public function build(array $options, SiteRepresentation $site, string $dir, int $maxItems): array
-    {
+    public function build(
+        array $options,
+        SiteRepresentation $site,
+        string $dir,
+        int $maxItems,
+        ?callable $shouldStop = null
+    ): array {
         $termYear = (string) ($options['property_year'] ?? '');
         $termsKeywords = (array) ($options['property_keywords'] ?? []);
         $termsDetail = (array) ($options['properties_detail'] ?? []);
@@ -92,6 +97,9 @@ class DataBuilder
 
         $sources = [];
         for ($offset = 0; count($sources) < $maxItems; $offset += self::BATCH) {
+            if ($shouldStop && $shouldStop()) {
+                break;
+            }
             $items = $this->api->search('items', ['offset' => $offset] + $query)->getContent();
             if (!$items) {
                 break;

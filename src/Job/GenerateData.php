@@ -30,16 +30,38 @@ class GenerateData extends AbstractJob
 
         $storage = $services->get('Vikus\CacheStorage');
         $dir = $storage->prepareTemp($blockId);
+        $shouldStop = fn (): bool => $this->shouldStop();
         try {
-            $sources = $services->get('Vikus\DataBuilder')->build($options, $site, $dir, $maxItems);
-            $failed = $services->get('Vikus\SpriteBuilder')->build($sources, $dir);
-            file_put_contents($dir . '/info.md', (string) ($options['info'] ?? ''));
-            file_put_contents($dir . '/meta.json', json_encode([
+            $sources = $services->get('Vikus\DataBuilder')->build($options, $site, $dir, $maxItems, $shouldStop);
+            if ($this->shouldStop()) {
+                $storage->discardTemp($blockId);
+                $logger->notice(
+                    'Block #{block_id}: the generation was stopped.', // @translate
+                    ['block_id' => $blockId]
+                );
+                return;
+            }
+            $failed = $services->get('Vikus\SpriteBuilder')->build($sources, $dir, $shouldStop);
+            if ($this->shouldStop()) {
+                $storage->discardTemp($blockId);
+                $logger->notice(
+                    'Block #{block_id}: the generation was stopped.', // @translate
+                    ['block_id' => $blockId]
+                );
+                return;
+            }
+            if (@file_put_contents($dir . '/info.md', (string) ($options['info'] ?? '')) === false) {
+                throw new \RuntimeException(sprintf('Unable to write file "%s/info.md".', $dir));
+            }
+            $meta = json_encode([
                 'hash' => DataBuilder::hash($options),
                 'total' => count($sources),
                 'page_id' => $page->getId(),
                 'generated' => (new \DateTimeImmutable())->format(DATE_ATOM),
-            ]));
+            ]);
+            if (@file_put_contents($dir . '/meta.json', $meta) === false) {
+                throw new \RuntimeException(sprintf('Unable to write file "%s/meta.json".', $dir));
+            }
             $storage->publish($blockId);
         } catch (\Throwable $e) {
             $storage->discardTemp($blockId);
