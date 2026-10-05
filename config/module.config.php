@@ -28,8 +28,8 @@ return [
         ],
     ],
     'block_layouts' => [
-        'invokables' => [
-            'vikus' => Site\BlockLayout\Vikus::class,
+        'factories' => [
+            'vikus' => Service\BlockLayout\VikusFactory::class,
         ],
     ],
     'form_elements' => [

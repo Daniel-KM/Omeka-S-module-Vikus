@@ -10,10 +10,23 @@ use Omeka\Entity\SitePageBlock;
 use Omeka\Site\BlockLayout\AbstractBlockLayout;
 use Omeka\Site\BlockLayout\TemplateableBlockLayoutInterface;
 use Omeka\Stdlib\ErrorStore;
+use Vikus\Form\VikusFieldset;
 
 class Vikus extends AbstractBlockLayout implements TemplateableBlockLayoutInterface
 {
     const PARTIAL_NAME = 'common/block-layout/vikus';
+
+    const IMAGE_SOURCES = ['auto', 'omeka', 'iiif'];
+
+    /**
+     * @var array
+     */
+    protected $defaults;
+
+    public function __construct(array $defaults)
+    {
+        $this->defaults = $defaults;
+    }
 
     public function getLabel()
     {
@@ -36,10 +49,21 @@ class Vikus extends AbstractBlockLayout implements TemplateableBlockLayoutInterf
             $data[$key] = array_values(array_filter((array) ($data[$key] ?? [])));
         }
         $data['link_to_item'] = !empty($data['link_to_item']);
-        $data['columns'] = max(1, (int) ($data['columns'] ?? 6));
+        $data['columns'] = max(1, min(50, (int) ($data['columns'] ?? 6)));
         $data['height'] = preg_match('~^\d+(\.\d+)?(px|vh|em|rem|%)$~', trim((string) ($data['height'] ?? '')))
             ? trim($data['height'])
             : '80vh';
+        $data['image_source'] = in_array($data['image_source'] ?? null, self::IMAGE_SOURCES, true)
+            ? $data['image_source']
+            : 'auto';
+
+        foreach (VikusFieldset::STYLES as $key => $label) {
+            $key = 'style_' . $key;
+            $value = $data[$key] ?? null;
+            $data[$key] = is_string($value) && preg_match('~^#[0-9a-fA-F]{6}$~', $value)
+                ? $value
+                : $this->defaults[$key];
+        }
 
         $block->setData($data);
     }
@@ -51,7 +75,7 @@ class Vikus extends AbstractBlockLayout implements TemplateableBlockLayoutInterf
         ?SitePageBlockRepresentation $block = null
     ) {
         $services = $site->getServiceLocator();
-        $defaults = $services->get('Config')['vikus']['block_settings']['vikus'];
+        $defaults = $this->defaults;
         $data = $block ? ($block->data() ?? []) + $defaults : $defaults;
         $data['query'] = is_array($data['query'])
             ? urldecode(http_build_query($data['query'], '', '&', PHP_QUERY_RFC3986))
