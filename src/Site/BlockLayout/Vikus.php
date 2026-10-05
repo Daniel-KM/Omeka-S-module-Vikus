@@ -24,9 +24,17 @@ class Vikus extends AbstractBlockLayout implements TemplateableBlockLayoutInterf
      */
     protected $defaults;
 
+    /**
+     * Blocks whose form asked a regeneration during the current request.
+     *
+     * @var \SplObjectStorage
+     */
+    protected $forced;
+
     public function __construct(array $defaults)
     {
         $this->defaults = $defaults;
+        $this->forced = new \SplObjectStorage();
     }
 
     public function getLabel()
@@ -36,7 +44,19 @@ class Vikus extends AbstractBlockLayout implements TemplateableBlockLayoutInterf
 
     public function onHydrate(SitePageBlock $block, ErrorStore $errorStore): void
     {
-        $block->setData(OptionsNormalizer::normalize($block->getData() ?? [], $this->defaults));
+        $data = $block->getData() ?? [];
+        if (!empty($data['regenerate'])) {
+            $this->forced->attach($block);
+        }
+        $block->setData(OptionsNormalizer::normalize($data, $this->defaults));
+    }
+
+    /**
+     * Check if the form of a block asked a regeneration in the current request.
+     */
+    public function isRegenerationForced(SitePageBlock $block): bool
+    {
+        return $this->forced->contains($block);
     }
 
     public function form(

@@ -181,13 +181,16 @@ class Module extends AbstractModule
                 continue;
             }
             $keys[] = CacheStorage::blockKey($block->getId());
-            $blocks[$block->getId()] = ($block->getData() ?? []) + $defaults;
+            $blocks[$block->getId()] = [$block, ($block->getData() ?? []) + $defaults];
         }
 
-        foreach ($blocks as $blockId => $data) {
+        $layout = $services->get('Omeka\BlockLayoutManager')->get('vikus');
+        foreach ($blocks as $blockId => [$block, $data]) {
             $key = CacheStorage::blockKey($blockId);
             $hash = DataBuilder::hash($data);
-            if (($storage->readMeta($key)['hash'] ?? null) !== $hash) {
+            if ($layout->isRegenerationForced($block)
+                || ($storage->readMeta($key)['hash'] ?? null) !== $hash
+            ) {
                 // Delete the current cache before dispatching: the block may
                 // have just inherited the id (and so the cache) of a different
                 // vikus block through a reorder or an insertion, and must not

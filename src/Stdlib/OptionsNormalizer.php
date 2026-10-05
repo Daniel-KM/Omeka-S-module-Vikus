@@ -57,6 +57,9 @@ class OptionsNormalizer
         }
 
         $data['max_items'] = max(0, (int) ($data['max_items'] ?? 0));
+        // The request of a regeneration is read by the block layout before the
+        // normalization and is never stored: it would fire on every save.
+        unset($data['regenerate']);
 
         foreach (['property_keywords', 'properties_detail', 'properties_group'] as $key) {
             $data[$key] = array_values(array_filter((array) ($data[$key] ?? [])));

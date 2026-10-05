@@ -41,7 +41,7 @@ class VikusFieldset extends Fieldset
     const ELEMENT_GROUPS = [
         'vikus_items' => [
             'label' => 'Items', // @translate
-            'keys' => ['query', 'max_items', 'title', 'info'],
+            'keys' => ['query', 'max_items', 'title', 'info', 'regenerate'],
         ],
         'vikus_alignment' => [
             'label' => 'Alignment', // @translate
@@ -169,6 +169,17 @@ class VikusFieldset extends Fieldset
                 'attributes' => [
                     'id' => $id('info'),
                     'rows' => 6,
+                ],
+            ],
+            'regenerate' => [
+                'name' => $name('regenerate'),
+                'type' => Element\Checkbox::class,
+                'options' => [
+                    'label' => 'Regenerate on save', // @translate
+                    'info' => 'The data and the sprites are rebuilt only when an option changes. Check to include the items added or modified since the last generation. The box is not kept.', // @translate
+                ],
+                'attributes' => [
+                    'id' => $id('regenerate'),
                 ],
             ],
             'timeline_events' => [
