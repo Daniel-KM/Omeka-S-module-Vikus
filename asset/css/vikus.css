@@ -1,27 +1,11 @@
-.vikus-frame {
-    position: relative;
-}
-
 .vikus-viewer {
     display: block;
     width: 100%;
     border: 0;
 }
 
-.vikus-full {
-    position: absolute;
-    bottom: 8px;
-    left: 8px;
-    padding: 4px 8px;
-    background: rgba(0, 0, 0, 0.6);
-    color: #fff;
-    font-size: 12px;
-    text-decoration: none;
-    border-radius: 3px;
-}
-
-.vikus-full:hover,
-.vikus-full:focus {
-    background: rgba(0, 0, 0, 0.85);
-    color: #fff;
+.vikus-links {
+    margin: 0.5em 0 0;
+    font-size: 0.9em;
+    text-align: right;
 }

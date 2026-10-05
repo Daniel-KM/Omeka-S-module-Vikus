@@ -20,8 +20,6 @@ $escapeAttr = $plugins->get('escapeHtmlAttr');
 <?php elseif ($status === 'empty'): ?>
 <p class="vikus-empty"><?= $escape($translate('No item with an image.')) ?></p>
 <?php else: ?>
-<div class="vikus-frame">
-    <iframe class="vikus-viewer" src="<?= $escapeAttr($url) ?>" style="height: <?= $escapeAttr($height) ?>;" allowfullscreen="allowfullscreen" loading="lazy" title="<?= $escapeAttr($translate('Vikus Viewer')) ?>"></iframe>
-    <a class="vikus-full" href="<?= $escapeAttr($fullUrl) ?>" target="_blank"><?= $escape($translate('Full view')) ?></a>
-</div>
+<iframe class="vikus-viewer" src="<?= $escapeAttr($url) ?>" style="height: <?= $escapeAttr($height) ?>;" allowfullscreen="allowfullscreen" loading="lazy" title="<?= $escapeAttr($translate('Vikus Viewer')) ?>"></iframe>
+<p class="vikus-links"><a class="vikus-full" href="<?= $escapeAttr($fullUrl) ?>" target="_blank"><?= $escape($translate('Full view')) ?></a></p>
 <?php endif; ?>
