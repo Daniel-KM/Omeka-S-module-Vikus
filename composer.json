@@ -46,7 +46,18 @@
     "extra": {
         "installer-name": "Vikus",
         "external-assets": {
-            "asset/vendor/vikus-viewer/": "https://github.com/cpietsch/vikus-viewer/archive/ccb4e7e3d921521b01b2760b51bf4d1b090b844b.tar.gz"
+            "asset/vendor/vikus-viewer/": {
+                "url": "https://github.com/cpietsch/vikus-viewer/archive/ccb4e7e3d921521b01b2760b51bf4d1b090b844b.tar.gz",
+                "exclude": [
+                    ".htaccess",
+                    ".devcontainer",
+                    ".github",
+                    ".gitignore",
+                    ".nojekyll",
+                    ".vscode",
+                    "README.md"
+                ]
+            }
         }
     }
 }
