@@ -59,8 +59,14 @@ class Vikus extends AbstractBlockLayout implements TemplateableBlockLayoutInterf
         // builder does. The items without image are not filtered here: the
         // image is resolved only during the generation.
         $query['site_id'] = $site->id();
-        $itemCount = (int) $services->get('ControllerPluginManager')->get('api')
-            ->search('items', ['limit' => 0] + $query)->getTotalResults();
+        // A malformed stored query must not break the editor of the page, so
+        // the count is simply not displayed when the search fails.
+        try {
+            $itemCount = (int) $services->get('ControllerPluginManager')->get('api')
+                ->search('items', ['limit' => 0] + $query)->getTotalResults();
+        } catch (\Throwable $e) {
+            $itemCount = null;
+        }
 
         $data['query'] = is_array($data['query'])
             ? urldecode(http_build_query($data['query'], '', '&', PHP_QUERY_RFC3986))

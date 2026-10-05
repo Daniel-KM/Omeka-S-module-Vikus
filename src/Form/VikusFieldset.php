@@ -263,8 +263,8 @@ class VikusFieldset extends Fieldset
                     'label' => 'Size of the sprites (px)', // @translate
                     'info' => 'The thumbnails are packed in atlases of 2048 px. A smaller size divides the number of atlases by four, so the memory of the graphic card too, but the images are blurry when the visitor zooms in.', // @translate
                     'value_options' => [
-                        256 => '256',
-                        128 => '128',
+                        256 => '256 px',
+                        128 => '128 px',
                     ],
                 ],
                 'attributes' => [
