@@ -14,6 +14,7 @@ class DataBuilderFactory implements FactoryInterface
             $services->get('Omeka\ApiManager'),
             $services->get('Omeka\EntityManager'),
             $services->get('Vikus\ImageUrl'),
+            $services->get('MvcTranslator'),
             $services->get('Config')['file_store']['local']['base_path'] ?: OMEKA_PATH . '/files'
         );
     }

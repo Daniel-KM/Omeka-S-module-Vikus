@@ -33,11 +33,18 @@ class ConfigBuilder
         $columns = (int) ($options['columns'] ?? 6) ?: 6;
 
         // The first layout is the default one and the viewer hides the
-        // navigation when there is only one.
+        // navigation when there is only one. A title is the identifier of a
+        // layout for the viewer, so a duplicated one is suffixed by its term.
         $layouts = [['title' => 'Time']];
+        $titles = ['Time' => true];
         foreach ((array) ($options['properties_group'] ?? []) as $term) {
+            $title = $this->label($term);
+            if (isset($titles[$title])) {
+                $title .= ' (' . $term . ')';
+            }
+            $titles[$title] = true;
             $layouts[] = [
-                'title' => $this->label($term),
+                'title' => $title,
                 'type' => 'group',
                 'groupKey' => DataBuilder::columnGroup($term),
                 'columns' => $columns,

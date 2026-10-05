@@ -3,6 +3,7 @@
 namespace Vikus\Stdlib;
 
 use Doctrine\ORM\EntityManager;
+use Laminas\I18n\Translator\TranslatorInterface;
 use Omeka\Api\Manager as ApiManager;
 use Omeka\Api\Representation\ItemRepresentation;
 use Omeka\Api\Representation\MediaRepresentation;
@@ -35,17 +36,21 @@ class DataBuilder
 
     protected ImageUrl $imageUrl;
 
+    protected TranslatorInterface $translator;
+
     protected string $filesBasePath;
 
     public function __construct(
         ApiManager $api,
         EntityManager $entityManager,
         ImageUrl $imageUrl,
+        TranslatorInterface $translator,
         string $filesBasePath
     ) {
         $this->api = $api;
         $this->entityManager = $entityManager;
         $this->imageUrl = $imageUrl;
+        $this->translator = $translator;
         $this->filesBasePath = rtrim($filesBasePath, '/');
     }
 
@@ -105,12 +110,16 @@ class DataBuilder
         $termsDetail = (array) ($options['properties_detail'] ?? []);
         $imageSource = (string) ($options['image_source'] ?? 'auto');
         $linkToItem = !empty($options['link_to_item']);
-        // A dimension of the crossfilter is a single column of data.csv, so
-        // one is written by property of the keywords, but only in that mode.
+        // A dimension of the crossfilter is a single column of data.csv, so one
+        // is written by property of the keywords, but only in that mode.
         $termsFilter = ($options['filter_type'] ?? 'tags') === 'crossfilter'
             ? $termsKeywords
             : [];
         $termsGroup = (array) ($options['properties_group'] ?? []);
+        // The viewer removes the empty keys from the domain of a group layout
+        // and places an item with an unknown key outside of the canvas, so the
+        // items without value are grouped under a label.
+        $unknown = $this->translator->translate('Unknown'); // @translate
 
         $headers = array_merge(
             ['id', 'keywords', 'year'],
@@ -158,8 +167,11 @@ class DataBuilder
                 foreach ($termsDetail as $term) {
                     $row[] = implode(' ; ', array_map([$this, 'label'], $item->value($term, ['all' => true])));
                 }
-                foreach (array_merge($termsFilter, $termsGroup) as $term) {
+                foreach ($termsFilter as $term) {
                     $row[] = $this->firstLabel($item, $term);
+                }
+                foreach ($termsGroup as $term) {
+                    $row[] = $this->firstLabel($item, $term) ?: $unknown;
                 }
                 if ($linkToItem) {
                     $row[] = $item->siteUrl($site->slug(), true);

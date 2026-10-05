@@ -99,8 +99,8 @@ class VikusFieldset extends Fieldset
                 'options' => [
                     'label' => 'Events of the timeline', // @translate
                     'info' => 'Write one event by line like "1789 = Night of the 4th August = Abolition of feudalism = Extra note". Only the year is required.', // @translate
-                    // Important: these options should be set in the block
-                    // layout too.
+                    // Important: OptionsNormalizer rebuilds this element with
+                    // the same keys to parse the value stored as a string.
                     'data_options' => self::TIMELINE_KEYS,
                 ],
                 'attributes' => [
