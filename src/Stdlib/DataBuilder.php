@@ -151,11 +151,11 @@ class DataBuilder
         $this->buildTimeline($options, $dir);
 
         // The items are filtered on the presence of a media, that is the only
-        // image of an item in a standard install. When digital objects are
-        // available, an item without media may have one, so the filter is
-        // skipped and the items without image are simply not written.
+        // image of an item in a standard install. When the instance has
+        // digital objects, an item without media may have one, so the filter
+        // is skipped and the items without image are simply not written.
         $query = ['site_id' => $site->id()]
-            + ($this->digitalObjectInline ? [] : ['has_media' => 1])
+            + ($this->hasDigitalObjects() ? [] : ['has_media' => 1])
             + (array) ($options['query'] ?? []);
         $query['sort_by'] = 'id';
         $query['sort_order'] = 'asc';
@@ -172,11 +172,11 @@ class DataBuilder
                 break;
             }
             foreach ($items as $item) {
-                $media = $this->imageResource($item);
-                if (!$media) {
+                $image = $this->imageResource($item);
+                if (!$image) {
                     continue;
                 }
-                $urls = $this->imageUrl->urls($media, $imageSource);
+                $urls = $this->imageUrl->urls($image, $imageSource);
                 $row = [
                     $item->id(),
                     implode(',', $this->keywords($item, $termsKeywords)),
@@ -198,7 +198,7 @@ class DataBuilder
                 $row[] = $urls['big'];
                 fputcsv($handle, $row, ',', '"', '');
 
-                $sources[$item->id()] = $this->thumbnailSource($media);
+                $sources[$item->id()] = $this->thumbnailSource($image);
                 if (count($sources) >= $maxItems) {
                     break;
                 }
@@ -303,6 +303,19 @@ class DataBuilder
             ], ',', '"', '');
         }
         fclose($handle);
+    }
+
+    /**
+     * Check if the instance has at least one digital object.
+     *
+     * The filter on the media of the item query can only be dropped when they
+     * exist: without that check, enabling the module DigitalObject alone would
+     * make every generation read all the items of the site.
+     */
+    protected function hasDigitalObjects(): bool
+    {
+        return $this->digitalObjectInline
+            && $this->api->search('digital_objects', ['limit' => 0])->getTotalResults() > 0;
     }
 
     /**

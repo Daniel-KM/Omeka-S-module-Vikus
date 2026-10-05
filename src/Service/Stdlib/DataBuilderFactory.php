@@ -14,9 +14,11 @@ class DataBuilderFactory implements FactoryInterface
         // access to the digital objects linked to an item, so none of its
         // classes is referenced.
         $helpers = $services->get('ViewHelperManager');
-        $digitalObjectInline = $helpers->has('digitalObjectInline')
-            ? fn ($item): array => (array) $helpers->get('digitalObjectInline')($item)
-            : null;
+        $digitalObjectInline = null;
+        if ($helpers->has('digitalObjectInline')) {
+            $helper = $helpers->get('digitalObjectInline');
+            $digitalObjectInline = fn ($item): array => (array) $helper($item);
+        }
 
         return new DataBuilder(
             $services->get('Omeka\ApiManager'),
