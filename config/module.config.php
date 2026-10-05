@@ -46,6 +46,7 @@ return [
         'invokables' => [
             Form\VikusFieldset::class => Form\VikusFieldset::class,
             Form\SettingsFieldset::class => Form\SettingsFieldset::class,
+            Form\SiteSettingsFieldset::class => Form\SiteSettingsFieldset::class,
         ],
     ],
     'router' => [
@@ -84,6 +85,32 @@ return [
     'vikus' => [
         'settings' => [
             'vikus_max_items' => 10000,
+        ],
+        'site_settings' => [
+            'vikus_property_year' => 'dcterms:date',
+            'vikus_property_keywords' => ['dcterms:subject'],
+            'vikus_properties_detail' => [
+                'dcterms:title',
+                'dcterms:creator',
+                'dcterms:date',
+                'dcterms:description',
+            ],
+            'vikus_image_source' => 'auto',
+            'vikus_link_to_item' => true,
+            'vikus_columns' => 6,
+            'vikus_height' => '80vh',
+            'vikus_style_fontColor' => '#2d3b43',
+            'vikus_style_fontColorActive' => '#eae2cb',
+            'vikus_style_fontBackground' => '#295b71',
+            'vikus_style_canvasBackground' => '#eae2cb',
+            'vikus_style_timelineBackground' => '#fff9eb',
+            'vikus_style_timelineFontColor' => '#000000',
+            'vikus_style_backgroundHeader' => '#035151',
+            'vikus_style_fontColorHeader' => '#f8774f',
+            'vikus_style_detailBackground' => '#eeeeee',
+            'vikus_style_infoBackground' => '#33444c',
+            'vikus_style_infoFontColor' => '#ffffff',
+            'vikus_style_searchbarBackground' => '#295b71',
         ],
         'block_settings' => [
             'vikus' => [

@@ -11,12 +11,11 @@ use Omeka\Site\BlockLayout\AbstractBlockLayout;
 use Omeka\Site\BlockLayout\TemplateableBlockLayoutInterface;
 use Omeka\Stdlib\ErrorStore;
 use Vikus\Form\VikusFieldset;
+use Vikus\Stdlib\OptionsNormalizer;
 
 class Vikus extends AbstractBlockLayout implements TemplateableBlockLayoutInterface
 {
     const PARTIAL_NAME = 'common/block-layout/vikus';
-
-    const IMAGE_SOURCES = ['auto', 'omeka', 'iiif'];
 
     /**
      * @var array
@@ -35,37 +34,7 @@ class Vikus extends AbstractBlockLayout implements TemplateableBlockLayoutInterf
 
     public function onHydrate(SitePageBlock $block, ErrorStore $errorStore): void
     {
-        $data = $block->getData() ?? [];
-
-        if (empty($data['query'])) {
-            $data['query'] = [];
-        } elseif (!is_array($data['query'])) {
-            $query = [];
-            parse_str(ltrim($data['query'], "? \t\n\r\0\x0B"), $query);
-            $data['query'] = $query;
-        }
-
-        foreach (['property_keywords', 'properties_detail'] as $key) {
-            $data[$key] = array_values(array_filter((array) ($data[$key] ?? [])));
-        }
-        $data['link_to_item'] = !empty($data['link_to_item']);
-        $data['columns'] = max(1, min(50, (int) ($data['columns'] ?? 6)));
-        $data['height'] = preg_match('~^\d+(\.\d+)?(px|vh|em|rem|%)$~', trim((string) ($data['height'] ?? '')))
-            ? trim($data['height'])
-            : '80vh';
-        $data['image_source'] = in_array($data['image_source'] ?? null, self::IMAGE_SOURCES, true)
-            ? $data['image_source']
-            : 'auto';
-
-        foreach (VikusFieldset::STYLES as $key => $label) {
-            $key = 'style_' . $key;
-            $value = $data[$key] ?? null;
-            $data[$key] = is_string($value) && preg_match('~^#[0-9a-fA-F]{6}$~', $value)
-                ? $value
-                : $this->defaults[$key];
-        }
-
-        $block->setData($data);
+        $block->setData(OptionsNormalizer::normalize($block->getData() ?? [], $this->defaults));
     }
 
     public function form(
@@ -86,7 +55,7 @@ class Vikus extends AbstractBlockLayout implements TemplateableBlockLayoutInterf
             $dataForm['o:block[__blockIndex__][o:data][' . $key . ']'] = $value;
         }
 
-        $fieldset = $services->get('FormElementManager')->get(\Vikus\Form\VikusFieldset::class);
+        $fieldset = $services->get('FormElementManager')->get(VikusFieldset::class);
         $fieldset->populateValues($dataForm);
 
         return $view->partial('common/block-layout/admin/vikus-form', [

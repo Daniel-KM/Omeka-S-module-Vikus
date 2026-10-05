@@ -26,9 +26,26 @@ class VikusFieldset extends Fieldset
     public function init(): void
     {
         $name = fn (string $key): string => 'o:block[__blockIndex__][o:data][' . $key . ']';
+        $id = fn (string $key): string => 'vikus-' . strtolower(strtr($key, '_', '-'));
 
-        $this
-            ->add([
+        foreach (self::elementSpecs($name, $id) as $spec) {
+            $this->add($spec);
+        }
+    }
+
+    /**
+     * Build the specs of the elements of a viewer, by option key.
+     *
+     * The same options are set by a page block and by the site settings, only
+     * their names and their ids differ, so they are declared once here.
+     *
+     * @param callable $name Build the name of an element from its option key.
+     * @param callable $id Build the html id of an element from its option key.
+     */
+    public static function elementSpecs(callable $name, callable $id): array
+    {
+        $specs = [
+            'query' => [
                 'name' => $name('query'),
                 'type' => OmekaElement\Query::class,
                 'options' => [
@@ -40,10 +57,10 @@ class VikusFieldset extends Fieldset
                     ],
                 ],
                 'attributes' => [
-                    'id' => 'vikus-query',
+                    'id' => $id('query'),
                 ],
-            ])
-            ->add([
+            ],
+            'title' => [
                 'name' => $name('title'),
                 'type' => Element\Text::class,
                 'options' => [
@@ -51,21 +68,21 @@ class VikusFieldset extends Fieldset
                     'info' => 'The title of the page is used when empty.', // @translate
                 ],
                 'attributes' => [
-                    'id' => 'vikus-title',
+                    'id' => $id('title'),
                 ],
-            ])
-            ->add([
+            ],
+            'info' => [
                 'name' => $name('info'),
                 'type' => Element\Textarea::class,
                 'options' => [
                     'label' => 'Presentation (markdown)', // @translate
                 ],
                 'attributes' => [
-                    'id' => 'vikus-info',
+                    'id' => $id('info'),
                     'rows' => 6,
                 ],
-            ])
-            ->add([
+            ],
+            'property_year' => [
                 'name' => $name('property_year'),
                 'type' => OmekaElement\PropertySelect::class,
                 'options' => [
@@ -75,12 +92,12 @@ class VikusFieldset extends Fieldset
                     'term_as_value' => true,
                 ],
                 'attributes' => [
-                    'id' => 'vikus-property-year',
+                    'id' => $id('property_year'),
                     'class' => 'chosen-select',
                     'data-placeholder' => 'Select a property…', // @translate
                 ],
-            ])
-            ->add([
+            ],
+            'property_keywords' => [
                 'name' => $name('property_keywords'),
                 'type' => OmekaElement\PropertySelect::class,
                 'options' => [
@@ -88,13 +105,13 @@ class VikusFieldset extends Fieldset
                     'term_as_value' => true,
                 ],
                 'attributes' => [
-                    'id' => 'vikus-property-keywords',
+                    'id' => $id('property_keywords'),
                     'class' => 'chosen-select',
                     'multiple' => true,
                     'data-placeholder' => 'Select properties…', // @translate
                 ],
-            ])
-            ->add([
+            ],
+            'properties_detail' => [
                 'name' => $name('properties_detail'),
                 'type' => OmekaElement\PropertySelect::class,
                 'options' => [
@@ -102,13 +119,13 @@ class VikusFieldset extends Fieldset
                     'term_as_value' => true,
                 ],
                 'attributes' => [
-                    'id' => 'vikus-properties-detail',
+                    'id' => $id('properties_detail'),
                     'class' => 'chosen-select',
                     'multiple' => true,
                     'data-placeholder' => 'Select properties…', // @translate
                 ],
-            ])
-            ->add([
+            ],
+            'image_source' => [
                 'name' => $name('image_source'),
                 'type' => Element\Select::class,
                 'options' => [
@@ -120,54 +137,58 @@ class VikusFieldset extends Fieldset
                     ],
                 ],
                 'attributes' => [
-                    'id' => 'vikus-image-source',
+                    'id' => $id('image_source'),
                 ],
-            ])
-            ->add([
+            ],
+            'link_to_item' => [
                 'name' => $name('link_to_item'),
                 'type' => Element\Checkbox::class,
                 'options' => [
                     'label' => 'Add a link to the item in the detail panel', // @translate
                 ],
                 'attributes' => [
-                    'id' => 'vikus-link-to-item',
+                    'id' => $id('link_to_item'),
                 ],
-            ])
-            ->add([
+            ],
+            'columns' => [
                 'name' => $name('columns'),
                 'type' => Element\Number::class,
                 'options' => [
                     'label' => 'Number of columns by year', // @translate
                 ],
                 'attributes' => [
-                    'id' => 'vikus-columns',
+                    'id' => $id('columns'),
                     'min' => 1,
                     'max' => 50,
                 ],
-            ])
-            ->add([
+            ],
+            'height' => [
                 'name' => $name('height'),
                 'type' => Element\Text::class,
                 'options' => [
                     'label' => 'Height of the viewer (css)', // @translate
                 ],
                 'attributes' => [
-                    'id' => 'vikus-height',
+                    'id' => $id('height'),
                     'placeholder' => '80vh',
                 ],
-            ]);
+            ],
+        ];
 
         foreach (self::STYLES as $key => $label) {
-            $this->add([
-                'name' => $name('style_' . $key),
+            $key = 'style_' . $key;
+            $specs[$key] = [
+                'name' => $name($key),
                 'type' => Element\Color::class,
                 'options' => [
                     'label' => $label,
                 ],
                 'attributes' => [
-                    'id' => 'vikus-style-' . strtolower($key),
+                    'id' => $id($key),
                 ],
-            ]);
+            ];
         }
+
+        return $specs;
     }
 }

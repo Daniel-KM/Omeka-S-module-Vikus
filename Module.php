@@ -33,6 +33,7 @@ use Laminas\Mvc\MvcEvent;
 use Omeka\Api\Adapter\SitePageAdapter;
 use Omeka\Entity\SitePage;
 use Omeka\Form\SettingForm;
+use Omeka\Form\SiteSettingsForm;
 use Omeka\Module\AbstractModule;
 use Omeka\Module\Exception\ModuleCannotInstallException;
 use Vikus\Job\GenerateData;
@@ -128,6 +129,11 @@ class Module extends AbstractModule
             SettingForm::class,
             'form.add_elements',
             [$this, 'handleMainSettings']
+        );
+        $sharedEventManager->attach(
+            SiteSettingsForm::class,
+            'form.add_elements',
+            [$this, 'handleSiteSettings']
         );
     }
 
