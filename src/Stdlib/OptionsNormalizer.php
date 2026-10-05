@@ -54,6 +54,7 @@ class OptionsNormalizer
             $data['timeline_events'] = self::timelineEvents($data['timeline_events']);
         }
         $data['link_to_item'] = !empty($data['link_to_item']);
+        $data['layout_map'] = !empty($data['layout_map']);
         $data['columns'] = max(1, min(50, (int) ($data['columns'] ?? 6)));
         $data['height'] = preg_match('~^\d+(\.\d+)?(px|vh|em|rem|%)$~', trim((string) ($data['height'] ?? '')))
             ? trim((string) $data['height'])

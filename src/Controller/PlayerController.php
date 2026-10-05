@@ -119,10 +119,12 @@ class PlayerController extends AbstractActionController
     public function configAction()
     {
         $target = $this->getTarget();
+        $meta = $this->cacheStorage->readMeta($target['key']);
         return new JsonModel($this->configBuilder->build(
             $target['options'],
             $target['title'],
-            $this->cacheStorage->url($target['key'])
+            $this->cacheStorage->url($target['key']),
+            !empty($meta['map'])
         ));
     }
 

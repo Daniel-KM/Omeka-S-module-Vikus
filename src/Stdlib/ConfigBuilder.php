@@ -19,8 +19,11 @@ class ConfigBuilder
 
     /**
      * Build the config of the viewer from the options of a block.
+     *
+     * @param bool $hasMap Whether the cache contains a map.csv, that is only
+     * built when the module Mapping is active and an item has a point.
      */
-    public function build(array $options, string $title, string $cacheUrl): array
+    public function build(array $options, string $title, string $cacheUrl, bool $hasMap = false): array
     {
         $style = [];
         foreach ($options as $key => $value) {
@@ -33,21 +36,26 @@ class ConfigBuilder
         $columns = (int) ($options['columns'] ?? 6) ?: 6;
 
         // The first layout is the default one and the viewer hides the
-        // navigation when there is only one. A title is the identifier of a
-        // layout for the viewer, so a duplicated one is suffixed by its term.
+        // navigation when there is only one.
         $layouts = [['title' => 'Time']];
         $titles = ['Time' => true];
         foreach ((array) ($options['properties_group'] ?? []) as $term) {
-            $title = $this->label($term);
-            if (isset($titles[$title])) {
-                $title .= ' (' . $term . ')';
-            }
-            $titles[$title] = true;
             $layouts[] = [
-                'title' => $title,
+                'title' => $this->uniqueTitle($this->label($term), $titles, $term),
                 'type' => 'group',
                 'groupKey' => DataBuilder::columnGroup($term),
                 'columns' => $columns,
+            ];
+        }
+
+        // The map uses the csv mechanism of the similarity layouts of the
+        // viewer, that rescales the columns "x" and "y" on their extent.
+        if (!empty($options['layout_map']) && $hasMap) {
+            $mapTitle = $this->translator->translate('Map'); // @translate
+            $layouts[] = [
+                'title' => $this->uniqueTitle($mapTitle, $titles, 'map.csv'),
+                'url' => $cacheUrl . '/map.csv',
+                'scale' => 0.5,
             ];
         }
 
@@ -126,6 +134,21 @@ class ConfigBuilder
             ];
         }
         return ['type' => 'crossfilter', 'dimensions' => $dimensions];
+    }
+
+    /**
+     * Get a title not yet used by a layout, suffixed when it is taken.
+     *
+     * The viewer identifies a layout by its title, so two layouts sharing one
+     * would override each other.
+     */
+    protected function uniqueTitle(string $title, array &$titles, string $suffix): string
+    {
+        if (isset($titles[$title])) {
+            $title .= ' (' . $suffix . ')';
+        }
+        $titles[$title] = true;
+        return $title;
     }
 
     /**

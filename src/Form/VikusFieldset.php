@@ -183,6 +183,17 @@ class VikusFieldset extends Fieldset
                     'data-placeholder' => 'Select properties…', // @translate
                 ],
             ],
+            'layout_map' => [
+                'name' => $name('layout_map'),
+                'type' => Element\Checkbox::class,
+                'options' => [
+                    'label' => 'Add a map layout (module Mapping)', // @translate
+                    'info' => 'A layout is added to the navigation with the items having a point. The other items are hidden in it.', // @translate
+                ],
+                'attributes' => [
+                    'id' => $id('layout_map'),
+                ],
+            ],
             'image_source' => [
                 'name' => $name('image_source'),
                 'type' => Element\Select::class,

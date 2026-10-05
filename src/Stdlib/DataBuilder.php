@@ -27,6 +27,7 @@ class DataBuilder
         'properties_group',
         'image_source',
         'link_to_item',
+        'layout_map',
         'info',
     ];
 
@@ -40,18 +41,22 @@ class DataBuilder
 
     protected string $filesBasePath;
 
+    protected bool $hasMapping;
+
     public function __construct(
         ApiManager $api,
         EntityManager $entityManager,
         ImageUrl $imageUrl,
         TranslatorInterface $translator,
-        string $filesBasePath
+        string $filesBasePath,
+        bool $hasMapping
     ) {
         $this->api = $api;
         $this->entityManager = $entityManager;
         $this->imageUrl = $imageUrl;
         $this->translator = $translator;
         $this->filesBasePath = rtrim($filesBasePath, '/');
+        $this->hasMapping = $hasMapping;
     }
 
     public static function hash(array $options): string
@@ -192,7 +197,59 @@ class DataBuilder
         }
 
         fclose($handle);
+
+        $this->buildMap($options, array_keys($sources), $dir);
+
         return $sources;
+    }
+
+    /**
+     * Write map.csv, whose rows place the items with a point on a map.
+     *
+     * The viewer rescales the columns "x" and "y" of a csv layout on the
+     * extent of the data, so the raw degrees of an equirectangular projection
+     * are written as is. It negates "y" to place a row and a negative y is
+     * upward, so the latitude gives the north up. The items without point are
+     * simply absent: the viewer hides them in that layout.
+     *
+     * The file is skipped when no item has a point, so that the layout is not
+     * appended to a config pointing to a missing file.
+     *
+     * @param int[] $itemIds Ids of the items written in data.csv, in order.
+     */
+    protected function buildMap(array $options, array $itemIds, string $dir): void
+    {
+        if (empty($options['layout_map']) || !$this->hasMapping || !$itemIds) {
+            return;
+        }
+
+        // The module Mapping may be absent, so none of its classes can be
+        // referenced here: its api resource and its json keys are used only.
+        $points = [];
+        foreach (array_chunk($itemIds, self::BATCH) as $ids) {
+            $features = $this->api->search('mapping_features', ['item_id' => $ids])->getContent();
+            foreach ($features as $feature) {
+                $itemId = $feature->item()->id();
+                if (isset($points[$itemId]) || $feature->geographyType() !== 'Point') {
+                    continue;
+                }
+                $coordinates = $feature->geographyCoordinates();
+                $points[$itemId] = [$coordinates[0], $coordinates[1]];
+            }
+            $this->entityManager->clear();
+        }
+        if (!$points) {
+            return;
+        }
+
+        $handle = fopen($dir . '/map.csv', 'w');
+        fputcsv($handle, ['id', 'x', 'y'], ',', '"', '');
+        foreach ($itemIds as $itemId) {
+            if (isset($points[$itemId])) {
+                fputcsv($handle, [$itemId, $points[$itemId][0], $points[$itemId][1]], ',', '"', '');
+            }
+        }
+        fclose($handle);
     }
 
     /**

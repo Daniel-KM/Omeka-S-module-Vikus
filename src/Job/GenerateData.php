@@ -56,6 +56,9 @@ class GenerateData extends AbstractJob
             }
             $meta += [
                 'key' => $key,
+                // The layout of the map is only added to the config when the
+                // file exists, so that the viewer never loads a missing url.
+                'map' => is_file($dir . '/map.csv'),
                 'hash' => $hash,
                 'total' => count($sources),
                 'generated' => (new \DateTimeImmutable())->format(DATE_ATOM),
