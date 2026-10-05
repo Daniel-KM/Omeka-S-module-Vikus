@@ -92,6 +92,12 @@ return [
         'settings' => [
             'vikus_max_items' => 10000,
         ],
+        // Number of items above which the form of the block warns about the
+        // memory of the graphic card, that is the real limit of the viewer.
+        'thresholds' => [
+            'warn' => 2000,
+            'max_recommended' => 5000,
+        ],
         'site_settings' => [
             'vikus_property_year' => 'dcterms:date',
             'vikus_property_year_annotation' => '',
