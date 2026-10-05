@@ -30,6 +30,8 @@ use Common\TraitModule;
 use Laminas\EventManager\Event;
 use Laminas\EventManager\SharedEventManagerInterface;
 use Laminas\Mvc\MvcEvent;
+use Omeka\Api\Adapter\ItemSetAdapter;
+use Omeka\Api\Adapter\SiteAdapter;
 use Omeka\Api\Adapter\SitePageAdapter;
 use Omeka\Entity\SitePage;
 use Omeka\Form\SettingForm;
@@ -126,6 +128,16 @@ class Module extends AbstractModule
             [$this, 'handleSitePageDelete']
         );
         $sharedEventManager->attach(
+            ItemSetAdapter::class,
+            'api.delete.pre',
+            [$this, 'handleItemSetDelete']
+        );
+        $sharedEventManager->attach(
+            SiteAdapter::class,
+            'api.delete.pre',
+            [$this, 'handleSiteDelete']
+        );
+        $sharedEventManager->attach(
             SettingForm::class,
             'form.add_elements',
             [$this, 'handleMainSettings']
@@ -192,6 +204,44 @@ class Module extends AbstractModule
             return;
         }
         $this->purge($page, []);
+    }
+
+    /**
+     * Delete the caches of a deleted item set in any site.
+     */
+    public function handleItemSetDelete(Event $event): void
+    {
+        $id = $this->requestId($event);
+        if ($id) {
+            $this->purgeKeys('~^s\d+-r' . $id . '$~');
+        }
+    }
+
+    /**
+     * Delete the caches of the item sets of a deleted site.
+     */
+    public function handleSiteDelete(Event $event): void
+    {
+        $id = $this->requestId($event);
+        if ($id) {
+            $this->purgeKeys('~^s' . $id . '-r\d+$~');
+        }
+    }
+
+    protected function requestId(Event $event): int
+    {
+        $id = $event->getParam('request')->getId();
+        return (int) (is_array($id) ? ($id['id'] ?? 0) : $id);
+    }
+
+    protected function purgeKeys(string $pattern): void
+    {
+        $storage = $this->getServiceLocator()->get('Vikus\CacheStorage');
+        foreach ($storage->listKeys() as $key) {
+            if (preg_match($pattern, $key)) {
+                $storage->delete($key);
+            }
+        }
     }
 
     /**
