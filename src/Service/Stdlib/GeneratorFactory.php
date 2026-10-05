@@ -13,7 +13,8 @@ class GeneratorFactory implements FactoryInterface
         return new Generator(
             $services->get('Vikus\CacheStorage'),
             $services->get('Omeka\EntityManager'),
-            $services->get('Omeka\Job\Dispatcher')
+            $services->get('Omeka\Job\Dispatcher'),
+            $services->get('Omeka\Logger')
         );
     }
 }

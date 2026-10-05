@@ -3,6 +3,7 @@
 namespace Vikus\Stdlib;
 
 use Doctrine\ORM\EntityManager;
+use Laminas\Log\LoggerInterface;
 use Omeka\Entity\Job;
 use Omeka\Job\Dispatcher;
 use Vikus\Job\GenerateData;
@@ -31,11 +32,18 @@ class Generator
 
     protected Dispatcher $dispatcher;
 
-    public function __construct(CacheStorage $cacheStorage, EntityManager $entityManager, Dispatcher $dispatcher)
-    {
+    protected LoggerInterface $logger;
+
+    public function __construct(
+        CacheStorage $cacheStorage,
+        EntityManager $entityManager,
+        Dispatcher $dispatcher,
+        LoggerInterface $logger
+    ) {
         $this->cacheStorage = $cacheStorage;
         $this->entityManager = $entityManager;
         $this->dispatcher = $dispatcher;
+        $this->logger = $logger;
     }
 
     /**
@@ -51,7 +59,14 @@ class Generator
         if ($meta) {
             // The published cache no longer matches the options, so it must not
             // be served while the new one is built.
-            $this->cacheStorage->delete($key);
+            try {
+                $this->cacheStorage->delete($key);
+            } catch (\RuntimeException $e) {
+                $this->logger->err(
+                    'Vikus cache "{key}": {message}', // @translate
+                    ['key' => $key, 'message' => $e->getMessage()]
+                );
+            }
         }
         if ($this->isRunning($key)) {
             return;

@@ -192,7 +192,7 @@ class Module extends AbstractModule
                 // have just inherited the id (and so the cache) of a different
                 // vikus block through a reorder or an insertion, and must not
                 // serve its dataset while the job is running.
-                $storage->delete($key);
+                $this->deleteCache($key);
                 $services->get('Omeka\Job\Dispatcher')->dispatch(GenerateData::class, ['key' => $key]);
             }
         }
@@ -247,7 +247,7 @@ class Module extends AbstractModule
         $storage = $this->getServiceLocator()->get('Vikus\CacheStorage');
         foreach ($storage->listKeys() as $key) {
             if (preg_match($pattern, $key)) {
-                $storage->delete($key);
+                $this->deleteCache($key);
             }
         }
     }
@@ -260,8 +260,25 @@ class Module extends AbstractModule
         $storage = $this->getServiceLocator()->get('Vikus\CacheStorage');
         foreach (array_diff($storage->listKeys(), $keepKeys) as $key) {
             if (($storage->readMeta($key)['page_id'] ?? null) === $page->getId()) {
-                $storage->delete($key);
+                $this->deleteCache($key);
             }
+        }
+    }
+
+    /**
+     * Delete a cache without breaking the save of the page when a file cannot
+     * be removed: the error is logged and the job replaces the cache anyway.
+     */
+    protected function deleteCache(string $key): void
+    {
+        $services = $this->getServiceLocator();
+        try {
+            $services->get('Vikus\CacheStorage')->delete($key);
+        } catch (\RuntimeException $e) {
+            $services->get('Omeka\Logger')->err(
+                'Vikus cache "{key}": {message}', // @translate
+                ['key' => $key, 'message' => $e->getMessage()]
+            );
         }
     }
 }

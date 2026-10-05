@@ -109,7 +109,11 @@ class CacheStorage
             }
             throw new RuntimeException(sprintf('Unable to move directory "%s" to "%s".', $temp, $path));
         }
-        $this->remove($old);
+        try {
+            $this->remove($old);
+        } catch (RuntimeException $e) {
+            throw new RuntimeException(sprintf('The cache "%s" is published, but the previous one is left: %s', $key, $e->getMessage()), 0, $e);
+        }
     }
 
     /**
@@ -181,6 +185,12 @@ class CacheStorage
         return $key;
     }
 
+    /**
+     * Remove a directory recursively.
+     *
+     * @throws RuntimeException When a file cannot be removed, typically a cache
+     * written by another system user than the web server.
+     */
     protected function remove(string $dir): void
     {
         if (!is_dir($dir)) {
@@ -191,8 +201,13 @@ class CacheStorage
             RecursiveIteratorIterator::CHILD_FIRST
         );
         foreach ($iterator as $file) {
-            $file->isDir() ? rmdir($file->getPathname()) : unlink($file->getPathname());
+            $path = $file->getPathname();
+            if (!($file->isDir() ? @rmdir($path) : @unlink($path))) {
+                throw new RuntimeException(sprintf('Unable to remove "%s": check the owner and the permissions of the cache directory.', $path));
+            }
         }
-        rmdir($dir);
+        if (!@rmdir($dir)) {
+            throw new RuntimeException(sprintf('Unable to remove "%s": check the owner and the permissions of the cache directory.', $dir));
+        }
     }
 }
