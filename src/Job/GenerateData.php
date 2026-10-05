@@ -23,10 +23,13 @@ class GenerateData extends AbstractJob
             return;
         }
 
-        $options = ($block->getData() ?? []) + $services->get('Config')['vikus']['block_settings']['vikus'];
+        $defaults = $services->get('Config')['vikus']['block_settings']['vikus'];
+        $options = ($block->getData() ?? []) + $defaults;
+        $hash = DataBuilder::hash($options);
         $page = $block->getPage();
         $site = $services->get('Omeka\ApiManager')->read('sites', $page->getSite()->getId())->getContent();
         $maxItems = (int) $services->get('Omeka\Settings')->get('vikus_max_items', 10000);
+        $pageId = $page->getId();
 
         $storage = $services->get('Vikus\CacheStorage');
         $dir = $storage->prepareTemp($blockId);
@@ -34,7 +37,7 @@ class GenerateData extends AbstractJob
         try {
             $sources = $services->get('Vikus\DataBuilder')->build($options, $site, $dir, $maxItems, $shouldStop);
             if ($this->shouldStop()) {
-                $storage->discardTemp($blockId);
+                $storage->discardTemp($dir);
                 $logger->notice(
                     'Block #{block_id}: the generation was stopped.', // @translate
                     ['block_id' => $blockId]
@@ -43,7 +46,7 @@ class GenerateData extends AbstractJob
             }
             $failed = $services->get('Vikus\SpriteBuilder')->build($sources, $dir, $shouldStop);
             if ($this->shouldStop()) {
-                $storage->discardTemp($blockId);
+                $storage->discardTemp($dir);
                 $logger->notice(
                     'Block #{block_id}: the generation was stopped.', // @translate
                     ['block_id' => $blockId]
@@ -54,17 +57,39 @@ class GenerateData extends AbstractJob
                 throw new \RuntimeException(sprintf('Unable to write file "%s/info.md".', $dir));
             }
             $meta = json_encode([
-                'hash' => DataBuilder::hash($options),
+                'hash' => $hash,
                 'total' => count($sources),
-                'page_id' => $page->getId(),
+                'page_id' => $pageId,
                 'generated' => (new \DateTimeImmutable())->format(DATE_ATOM),
             ]);
             if (@file_put_contents($dir . '/meta.json', $meta) === false) {
                 throw new \RuntimeException(sprintf('Unable to write file "%s/meta.json".', $dir));
             }
-            $storage->publish($blockId);
+
+            // Reload the block to guard against a concurrent update: if its
+            // options changed (or it was removed) while this job was building
+            // the cache, another job was dispatched for the same block, and its
+            // result, not this one, must win.
+            try {
+                $services->get('Omeka\EntityManager')->refresh($block);
+                $currentHash = $block->getLayout() === 'vikus'
+                    ? DataBuilder::hash(($block->getData() ?? []) + $defaults)
+                    : null;
+            } catch (\Doctrine\ORM\EntityNotFoundException $e) {
+                $currentHash = null;
+            }
+            if ($currentHash !== $hash) {
+                $storage->discardTemp($dir);
+                $logger->notice(
+                    'Block #{block_id}: the options changed during the generation, the result was discarded.', // @translate
+                    ['block_id' => $blockId]
+                );
+                return;
+            }
+
+            $storage->publish($blockId, $dir);
         } catch (\Throwable $e) {
-            $storage->discardTemp($blockId);
+            $storage->discardTemp($dir);
             throw $e;
         }
 

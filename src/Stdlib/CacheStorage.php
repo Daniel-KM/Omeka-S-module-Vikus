@@ -38,12 +38,17 @@ class CacheStorage
     }
 
     /**
-     * Create an empty temporary directory and return its path.
+     * Create a unique, empty temporary directory and return its path.
+     *
+     * The directory is unique per call (not per block) so that two concurrent
+     * jobs building the same block never share, and so never wipe, each other's
+     * temporary directory.
      */
     public function prepareTemp(int $blockId): string
     {
-        $temp = $this->path($blockId) . '.tmp';
-        $this->remove($temp);
+        do {
+            $temp = $this->path($blockId) . '.tmp-' . bin2hex(random_bytes(8));
+        } while (is_dir($temp));
         if (!mkdir($temp, 0775, true) && !is_dir($temp)) {
             throw new RuntimeException(sprintf('Unable to create directory "%s".', $temp));
         }
@@ -51,9 +56,9 @@ class CacheStorage
     }
 
     /**
-     * Replace the cache by the temporary directory.
+     * Replace the cache of a block by the given temporary directory.
      */
-    public function publish(int $blockId): void
+    public function publish(int $blockId, string $temp): void
     {
         $path = $this->path($blockId);
         $old = $path . '.old';
@@ -62,24 +67,42 @@ class CacheStorage
         if ($hasPrevious && !@rename($path, $old)) {
             throw new RuntimeException(sprintf('Unable to move directory "%s" to "%s".', $path, $old));
         }
-        if (!@rename($path . '.tmp', $path)) {
+        if (!@rename($temp, $path)) {
             if ($hasPrevious) {
                 rename($old, $path);
             }
-            throw new RuntimeException(sprintf('Unable to move directory "%s.tmp" to "%s".', $path, $path));
+            throw new RuntimeException(sprintf('Unable to move directory "%s" to "%s".', $temp, $path));
         }
         $this->remove($old);
     }
 
-    public function discardTemp(int $blockId): void
+    /**
+     * Remove a temporary directory created by prepareTemp().
+     *
+     * The path is checked against the cache base path and the ".tmp-" marker
+     * before removal, so a caller cannot be tricked (or mistaken) into removing
+     * an unrelated directory.
+     */
+    public function discardTemp(string $temp): void
     {
-        $this->remove($this->path($blockId) . '.tmp');
+        if (!str_starts_with($temp, $this->basePath . '/') || !preg_match('~\.tmp-[^/]+$~', $temp)) {
+            throw new RuntimeException(sprintf('Refusing to discard directory "%s": not a temporary cache directory.', $temp));
+        }
+        $this->remove($temp);
     }
 
+    /**
+     * Remove the cache of a block, including any leftover temporary or old
+     * directory from an interrupted publish().
+     */
     public function delete(int $blockId): void
     {
-        $this->remove($this->path($blockId));
-        $this->discardTemp($blockId);
+        $path = $this->path($blockId);
+        $this->remove($path);
+        $this->remove($path . '.old');
+        foreach (glob($path . '.tmp-*', GLOB_ONLYDIR) ?: [] as $dir) {
+            $this->remove($dir);
+        }
     }
 
     public function deleteAll(): void

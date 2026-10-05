@@ -72,10 +72,10 @@ class PlayerController extends AbstractActionController
 
     public function generateAction()
     {
+        $block = $this->getBlock();
         if (!$this->getRequest()->isPost()) {
             return $this->getResponse()->setStatusCode(405);
         }
-        $block = $this->getBlock();
         if (!$block->page()->userIsAllowed('update')) {
             return $this->getResponse()->setStatusCode(403);
         }

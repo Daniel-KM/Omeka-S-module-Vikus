@@ -30,9 +30,9 @@ use Common\TraitModule;
 use Laminas\EventManager\Event;
 use Laminas\EventManager\SharedEventManagerInterface;
 use Laminas\Mvc\MvcEvent;
-use Laminas\ServiceManager\ServiceLocatorInterface;
 use Omeka\Api\Adapter\SitePageAdapter;
 use Omeka\Entity\SitePage;
+use Omeka\Form\SettingForm;
 use Omeka\Module\AbstractModule;
 use Omeka\Module\Exception\ModuleCannotInstallException;
 use Vikus\Job\GenerateData;
@@ -124,7 +124,7 @@ class Module extends AbstractModule
             [$this, 'handleSitePageDelete']
         );
         $sharedEventManager->attach(
-            \Omeka\Form\SettingForm::class,
+            SettingForm::class,
             'form.add_elements',
             [$this, 'handleMainSettings']
         );
@@ -160,50 +160,16 @@ class Module extends AbstractModule
         foreach ($blocks as $blockId => $data) {
             $hash = DataBuilder::hash($data);
             if (($storage->readMeta($blockId)['hash'] ?? null) !== $hash) {
-                $this->dispatchGenerateData($blockId);
+                // Delete the current cache before dispatching: the block may
+                // have just inherited the id (and so the cache) of a different
+                // vikus block through a reorder or an insertion, and must not
+                // serve its dataset while the job is running.
+                $storage->delete($blockId);
+                $services->get('Omeka\Job\Dispatcher')->dispatch(GenerateData::class, ['block_id' => $blockId]);
             }
         }
 
-        // A job dispatched synchronously (used by the tests of this module)
-        // clears the entity manager once done, detaching $page: re-attach it so
-        // the api layer can still build its response representation.
-        $entityManager = $services->get('Omeka\EntityManager');
-        if (!$entityManager->contains($page)) {
-            $page = $entityManager->find(get_class($page), $page->getId());
-            $event->getParam('response')->setContent($page);
-        }
-
         $this->purge($page, $blockIds);
-    }
-
-    /**
-     * Dispatch the generation job for a block.
-     *
-     * The authenticated user carried by the job as its owner may have been
-     * detached from the entity manager by an earlier clear() (for example after
-     * a previous api call in the same request), so it is re-merged before and
-     * after dispatching, since the synchronous strategy used by the tests of
-     * this module clears the entity manager once the job is done.
-     */
-    protected function dispatchGenerateData(int $blockId): void
-    {
-        $services = $this->getServiceLocator();
-        $this->reattachIdentity($services);
-        $services->get('Omeka\Job\Dispatcher')->dispatch(GenerateData::class, ['block_id' => $blockId]);
-        $this->reattachIdentity($services);
-    }
-
-    /**
-     * Re-merge the authenticated user into the current entity manager.
-     */
-    protected function reattachIdentity(ServiceLocatorInterface $services): void
-    {
-        $entityManager = $services->get('Omeka\EntityManager');
-        $auth = $services->get('Omeka\AuthenticationService');
-        $user = $auth->getIdentity();
-        if ($user && !$entityManager->contains($user)) {
-            $auth->getStorage()->write($entityManager->merge($user));
-        }
     }
 
     public function handleSitePageDelete(Event $event): void
