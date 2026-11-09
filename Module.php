@@ -66,31 +66,15 @@ class Module extends AbstractModule
         $services = $this->getServiceLocator();
         $translator = $services->get('MvcTranslator');
 
-        if (!method_exists($this, 'checkModuleActiveVersion') || !$this->checkModuleActiveVersion('Common', '3.4.93')) {
+        if (!method_exists($this, 'checkModuleActiveVersion') || !$this->checkModuleActiveVersion('Common', '3.4.95')) {
             $message = new \Omeka\Stdlib\Message(
                 $translator->translate('The module %1$s should be upgraded to version %2$s or later.'), // @translate
-                'Common', '3.4.93'
+                'Common', '3.4.95'
             );
             throw new ModuleCannotInstallException((string) $message);
         }
 
         $errors = [];
-
-        if (!file_exists(__DIR__ . '/asset/vendor/vikus-viewer/index.html')) {
-            $message = new PsrMessage(
-                'The library "{library}" should be installed. See module’s installation documentation.', // @translate
-                ['library' => 'VIKUS Viewer']
-            );
-            $errors[] = (string) $message->setTranslator($translator);
-        }
-
-        if (!file_exists(__DIR__ . '/asset/vendor/leaflet/dist/leaflet.js')) {
-            $message = new PsrMessage(
-                'The library "{library}" should be installed. See module’s installation documentation.', // @translate
-                ['library' => 'Leaflet']
-            );
-            $errors[] = (string) $message->setTranslator($translator);
-        }
 
         if (!extension_loaded('imagick') && !extension_loaded('gd')) {
             $message = new PsrMessage(
