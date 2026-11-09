@@ -36,6 +36,9 @@ See general end user documentation for [installing a module].
 
 This module requires the module [Common], that should be installed first.
 
+With big bases or on shared hosts, it is recommended to install the optional
+module [Job Queue] to avoid to overload the server when preparing viewer data.
+
 The module uses external libraries, so use the release zip to install it, or use
 and init the source.
 
@@ -474,5 +477,6 @@ Copyright
 [FSF]: https://www.fsf.org
 [OSI]: http://opensource.org
 [MIT]: https://opensource.org/licenses/MIT
+[Job Queue]: https://gitlab.com/Daniel-KM/Omeka-S-module-JobQueue
 [GitLab]: https://gitlab.com/Daniel-KM
 [Daniel-KM]: https://gitlab.com/Daniel-KM "Daniel Berthereau"
