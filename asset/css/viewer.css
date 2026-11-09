@@ -72,12 +72,11 @@
     left: 0;
     z-index: -1;
     pointer-events: none;
-}
+    &.leaflet-container {
+        background: transparent;
+    }
 
-.vikus-map.leaflet-container {
-    background: transparent;
-}
-
-.vikus-map .leaflet-control-container {
-    pointer-events: auto;
+    & .leaflet-control-container {
+        pointer-events: auto;
+    }
 }
